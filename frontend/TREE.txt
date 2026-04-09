@@ -1,0 +1,32 @@
+.
+|-- COMPONENTS.md
+|-- INSTALLATION.md
+|-- package.json
+|-- postcss.config.js
+|-- PROJECT_SUMMARY.md
+|-- public
+|   `-- index.html
+|-- README.md
+|-- src
+|   |-- App.jsx
+|   |-- components
+|   |   |-- Dashboard
+|   |   |-- Layout
+|   |   `-- UI
+|   |-- index.css
+|   |-- index.jsx
+|   `-- pages
+|       |-- Dashboard.jsx
+|       |-- Deteksi.jsx
+|       |-- HistoriDetail.jsx
+|       |-- Histori.jsx
+|       |-- InformasiWebsite.jsx
+|       |-- Login.jsx
+|       |-- Perhitungan.jsx
+|       `-- PetunjukPenggunaan.jsx
+|-- tailwind.config.js
+|-- TREE.txt
+|-- VERIFICATION.txt
+`-- vite.config.js
+
+8 directories, 22 files
