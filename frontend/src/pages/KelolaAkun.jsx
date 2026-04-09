@@ -64,9 +64,13 @@ export default function KelolaAkun() {
 
     try {
       if (editingId) {
-        // Update user role
-        await axios.put(`${API_URL}/users/${editingId}/role`, { role: form.role }, { headers });
-        setSuccessMsg("Pengguna berhasil diupdate");
+        // Update user role (dan password jika ada)
+        const updatePayload = { role: form.role };
+        if (form.password && form.password.trim()) {
+          updatePayload.password = form.password;
+        }
+        await axios.put(`${API_URL}/users/${editingId}/role`, updatePayload, { headers });
+        setSuccessMsg(`Pengguna berhasil diupdate`);
       } else {
         // Create new user
         await axios.post(`${API_URL}/users`, form, { headers });
@@ -235,8 +239,8 @@ export default function KelolaAkun() {
                       <td className="px-6 py-4 text-sm">
                         <span className={`px-3 py-1 rounded-full text-xs font-medium ${
                           user.role === 'admin' ? 'bg-red-100 text-red-700' :
-                          user.role === 'user' ? 'bg-yellow-100 text-yellow-700' :
-                          'bg-blue-100 text-blue-700'
+                          user.role === 'user' ? 'bg-blue-100 text-blue-700' :
+                          'bg-yellow-100 text-yellow-700'
                         }`}>
                           {user.role === 'admin' ? 'Admin' : 
                            user.role === 'user' ? 'User' : 
