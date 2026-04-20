@@ -26,49 +26,86 @@ export default function Deteksi() {
   const [processingFrame, setProcessingFrame] = useState(null); // YOLO processing frame
   const [rows, setRows] = useState([]);
   const fileInputRef = useRef(null);
+  const [savingRow, setSavingRow] = useState(null); // Row being saved (for modal)
+  const [manualCount, setManualCount] = useState(""); // Manual vehicle count for MAPE
+
+  // ================= CALCULATE MAPE =================
+  const calculateMAPE = (actualValue, forecastValue) => {
+    if (!actualValue || actualValue <= 0) return null;
+    const error = Math.abs(actualValue - forecastValue);
+    return parseFloat(((error / actualValue) * 100).toFixed(2));
+  };
+
+  const getMAPERating = (mapeValue) => {
+    if (mapeValue === null || mapeValue === undefined) {
+      return { rating: "N/A", color: "gray" };
+    }
+    if (mapeValue < 10) return { rating: "Sangat Baik ✨", color: "green" };
+    if (mapeValue < 20) return { rating: "Baik ✓", color: "blue" };
+    if (mapeValue < 50) return { rating: "Cukup ⚠", color: "yellow" };
+    return { rating: "Buruk ✗", color: "red" };
+  };
 
   // ================= SAVE TO DATABASE =================
   const handleSaveToDb = async (row) => {
+    setSavingRow(row);
+    setManualCount("");
+  };
+
+  const confirmSave = async () => {
+    if (!savingRow) return;
+
     try {
       const token = localStorage.getItem("accessToken");
+      const forecastVehicles = savingRow.vehicles;
+      const actualVehicles = manualCount ? parseInt(manualCount) : null;
+      const mape = actualVehicles ? calculateMAPE(actualVehicles, forecastVehicles) : null;
+
       const saveData = {
-        video_url: row.cloudinaryUrl || `https://via-mock/${row.name}.mp4`,
-        output_video_url: row.outputVideoUrl,
-        video_name: row.name,
-        total_vehicles: row.vehicles,
-        avg_confidence: parseFloat(row.avgConfidence),
-        duration: row.duration,
-        frames: row.frames,
-        detections: row.detections,
+        video_url: savingRow.cloudinaryUrl || `https://via-mock/${savingRow.name}.mp4`,
+        output_video_url: savingRow.outputVideoUrl,
+        video_name: savingRow.name,
+        total_vehicles: forecastVehicles,
+        avg_confidence: parseFloat(savingRow.avgConfidence),
+        duration: savingRow.duration,
+        frames: savingRow.frames,
+        detections: savingRow.detections,
         // NEW: Per-lane vehicle breakdown
         summary: {
-          totalVehicles: row.summary?.totalVehicles || row.vehicles || 0,
-          carCount: row.summary?.carCount || 0,
-          busCount: row.summary?.busCount || 0,
-          truckCount: row.summary?.truckCount || 0,
-          leftLaneCount: row.summary?.leftLaneCount || 0,
-          rightLaneCount: row.summary?.rightLaneCount || 0,
-          // NEW: Per-lane vehicle types
-          leftLane: row.summary?.leftLane || { mobil: 0, bus: 0, truk: 0 },
-          rightLane: row.summary?.rightLane || { mobil: 0, bus: 0, truk: 0 },
+          totalVehicles: savingRow.summary?.totalVehicles || forecastVehicles || 0,
+          carCount: savingRow.summary?.carCount || 0,
+          busCount: savingRow.summary?.busCount || 0,
+          truckCount: savingRow.summary?.truckCount || 0,
+          leftLaneCount: savingRow.summary?.leftLaneCount || 0,
+          rightLaneCount: savingRow.summary?.rightLaneCount || 0,
+          leftLane: savingRow.summary?.leftLane || { mobil: 0, bus: 0, truk: 0 },
+          rightLane: savingRow.summary?.rightLane || { mobil: 0, bus: 0, truk: 0 },
+        },
+        // NEW: Accuracy metrics (MAPE)
+        accuracy: {
+          actualVehicles,
+          forecastVehicles,
+          mapeValue: mape
         }
       };
 
       console.log("💾 Saving to backend:", saveData);
-        const res = await axios.post(
-          `${API_URL}/api/detect`,
-          saveData,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json"
-            },
-            timeout: 10000
+      const res = await axios.post(
+        `${API_URL}/api/detect`,
+        saveData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json"
+          },
+          timeout: 10000
         }
       );
 
       console.log("✅ Data saved:", res.data);
       alert("✅ Data tersimpan! Bisa digunakan di halaman Perhitungan");
+      setSavingRow(null);
+      setManualCount("");
     } catch (err) {
       console.error("❌ Save error:", err.response?.data || err.message);
       alert(`Gagal menyimpan: ${err.response?.data?.message || err.message}`);
@@ -82,10 +119,21 @@ export default function Deteksi() {
     { key: "vehicles", label: "Total Kendaraan" },
     {
       key: "avgConfidence",
-      label: "Avg Confidence",
-      render: (v) => {
-        const num = parseFloat(v) * 100;
-        return `${num.toFixed(0)}%`;
+      label: "MAPE Akurasi",
+      render: (v, row) => {
+        const mape = row.mape;
+        const rating = getMAPERating(mape);
+        if (mape === null) {
+          return `<span class="text-gray-500 text-xs">-</span>`;
+        }
+        const colorClass = {
+          green: "bg-green-100 text-green-800",
+          blue: "bg-blue-100 text-blue-800",
+          yellow: "bg-yellow-100 text-yellow-800",
+          red: "bg-red-100 text-red-800",
+          gray: "bg-gray-100 text-gray-800"
+        }[rating.color];
+        return `<div class="flex flex-col gap-1"><span class="px-2 py-1 rounded-full text-xs font-semibold ${colorClass}">${mape}% - ${rating.rating}</span></div>`;
       },
     },
     {
@@ -411,6 +459,7 @@ export default function Deteksi() {
           }
         ],
         status: "Selesai",
+        mape: null, // Will be calculated after user inputs manual count
         summary: {
           totalVehicles: correctTotalVehicles,  // Use corrected total from lane counts!
           carCount,
@@ -953,6 +1002,76 @@ export default function Deteksi() {
           )}
         </div>
       </Card>
+
+      {/* Modal untuk Input Manual Count (untuk MAPE) */}
+      {savingRow && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-8 max-w-md w-full mx-4 shadow-xl">
+            <h2 className="text-xl font-bold mb-4 text-gray-800">📊 Input Manual Count</h2>
+            <p className="text-sm text-gray-600 mb-6">
+              Untuk menghitung akurasi MAPE, masukkan jumlah kendaraan hasil observasi manual pada video ini.
+            </p>
+            
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                🔍 Jumlah Kendaraan (Observasi Manual)
+              </label>
+              <input
+                type="number"
+                min="0"
+                value={manualCount}
+                onChange={(e) => setManualCount(e.target.value)}
+                placeholder="Contoh: 247"
+                className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:border-blue-500"
+                autoFocus
+              />
+              <p className="text-xs text-gray-500 mt-2">
+                Masukkan hasil hitung manual dari video. Bisa juga skip jika belum tahu.
+              </p>
+            </div>
+
+            {manualCount && savingRow.vehicles && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+                <p className="text-xs font-semibold text-blue-900 mb-2">📈 Preview MAPE:</p>
+                {(() => {
+                  const mape = calculateMAPE(parseInt(manualCount), savingRow.vehicles);
+                  const rating = getMAPERating(mape);
+                  return (
+                    <>
+                      <div className="text-sm">
+                        <p className="text-gray-700"><strong>Manual:</strong> {manualCount}</p>
+                        <p className="text-gray-700"><strong>YOLO:</strong> {savingRow.vehicles}</p>
+                        <p className="text-gray-700"><strong>MAPE:</strong> {mape}%</p>
+                        <p className={`font-semibold text-${rating.color}-600 mt-1`}>
+                          {rating.rating}
+                        </p>
+                      </div>
+                    </>
+                  );
+                })()}
+              </div>
+            )}
+
+            <div className="flex gap-3">
+              <button
+                onClick={confirmSave}
+                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded-lg transition-colors"
+              >
+                ✅ Simpan
+              </button>
+              <button
+                onClick={() => {
+                  setSavingRow(null);
+                  setManualCount("");
+                }}
+                className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 font-semibold py-2 rounded-lg transition-colors"
+              >
+                ❌ Batal
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

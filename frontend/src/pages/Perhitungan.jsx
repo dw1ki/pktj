@@ -390,19 +390,13 @@ const handleHitungRumusCSV = (autoFormData, durationSeconds) => {
   const vehiclesKanan = autoFormData.kanan
   // Durasi dalam menit
   const durationMinutes = durationSeconds / 60
+  // Q = volume mobil saja per jam (tidak termasuk bus/truk dengan faktor EMP)
+  // Q = (jumlah mobil / durasi menit) × 60
+  let volumeQKiri = Math.round((vehiclesKiri.mobil / durationMinutes) * 60)
+  let volumeQKanan = Math.round((vehiclesKanan.mobil / durationMinutes) * 60)
   // Hitung SMP dengan EMP dinamis (berdasarkan Q per arah)
-  // Step 1: Hitung SMP awal dengan EMP statis
-  let smpKiri = calculateSMP(vehiclesKiri, autoFormData.tipeAlinemen, autoFormData.tipeJalan)
-  let smpKanan = calculateSMP(vehiclesKanan, autoFormData.tipeAlinemen, autoFormData.tipeJalan)
-  // Step 2: Hitung Q awal
-  let volumeQKiri = calculateVolume(smpKiri, durationMinutes)
-  let volumeQKanan = calculateVolume(smpKanan, durationMinutes)
-  // Step 3: Hitung SMP ulang dengan EMP dinamis (berdasarkan Q hasil step 2)
-  smpKiri = calculateSMP(vehiclesKiri, autoFormData.tipeAlinemen, autoFormData.tipeJalan, volumeQKiri)
-  smpKanan = calculateSMP(vehiclesKanan, autoFormData.tipeAlinemen, autoFormData.tipeJalan, volumeQKanan)
-  // Step 4: Hitung Q final
-  volumeQKiri = calculateVolume(smpKiri, durationMinutes)
-  volumeQKanan = calculateVolume(smpKanan, durationMinutes)
+  let smpKiri = calculateSMP(vehiclesKiri, autoFormData.tipeAlinemen, autoFormData.tipeJalan, volumeQKiri)
+  let smpKanan = calculateSMP(vehiclesKanan, autoFormData.tipeAlinemen, autoFormData.tipeJalan, volumeQKanan)
   // Kapasitas
   const baseCapacity = BASE_CAPACITY[autoFormData.tipeJalan] || 5000
   let numLanes = 1
@@ -520,15 +514,18 @@ const handleHitungRumusCSV = (autoFormData, durationSeconds) => {
           truk: formData.kanan?.truk || 0,
         }
 
-        // Calculate SMP untuk kiri
-        const smpKiri = calculateSMP(vehiclesKiri, formData.tipeAlinemen, formData.tipeJalan)
-        const volumeQKiri = calculateVolume(smpKiri, durationMinutes)
-        console.log(`✅ Kiri - SMP: ${smpKiri}, Volume Q: ${volumeQKiri} smp/jam`)
+        // Q = volume mobil saja per jam (tidak termasuk bus/truk dengan faktor EMP)
+        // Q = (jumlah mobil / durasi menit) × 60
+        const volumeQKiri = Math.round((vehiclesKiri.mobil / durationMinutes) * 60)
+        const volumeQKanan = Math.round((vehiclesKanan.mobil / durationMinutes) * 60)
+        console.log(`✅ Kiri - Volume Q: ${volumeQKiri} kendaraan/jam`)
+        console.log(`✅ Kanan - Volume Q: ${volumeQKanan} kendaraan/jam`)
 
-        // Calculate SMP untuk kanan
-        const smpKanan = calculateSMP(vehiclesKanan, formData.tipeAlinemen, formData.tipeJalan)
-        const volumeQKanan = calculateVolume(smpKanan, durationMinutes)
-        console.log(`✅ Kanan - SMP: ${smpKanan}, Volume Q: ${volumeQKanan} smp/jam`)
+        // Calculate SMP dengan dynamic EMP factors
+        const smpKiri = calculateSMP(vehiclesKiri, formData.tipeAlinemen, formData.tipeJalan, volumeQKiri)
+        const smpKanan = calculateSMP(vehiclesKanan, formData.tipeAlinemen, formData.tipeJalan, volumeQKanan)
+        console.log(`✅ Kiri - SMP: ${smpKiri}`)
+        console.log(`✅ Kanan - SMP: ${smpKanan}`)
 
         // Get EMP factors untuk display
         const empFactors = getEMPFactors(formData.tipeAlinemen, formData.tipeJalan)
