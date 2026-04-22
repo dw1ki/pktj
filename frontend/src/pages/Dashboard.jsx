@@ -161,27 +161,28 @@ export default function Dashboard() {
   return (
     <div className="flex flex-col gap-6 items-start justify-start relative w-full">
       {/* Date Filter Section */}
-      <div className="w-full flex justify-end">
-        <div className="relative">
-          <select 
-            value={selectedDate} 
-            onChange={(e) => setSelectedDate(e.target.value)}
-            className="appearance-none px-4 py-2 pr-10 border border-gray-300 rounded-lg text-gray-700 bg-white focus:outline-none focus:border-blue-500 cursor-pointer"
-            style={{ minWidth: '200px' }}
-          >
-            <option value="all">Semua Tanggal</option>
-            {allDates.map(date => (
-              <option key={date} value={date}>
-                {new Date(date + 'T00:00:00').toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' })}
-              </option>
-            ))}
-          </select>
-          <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
-            <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
-              <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" />
-            </svg>
-          </div>
-        </div>
+      <div className="w-full flex justify-end gap-3">
+        <button 
+          onClick={() => setSelectedDate('all')}
+          className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+            selectedDate === 'all' 
+              ? 'bg-blue-500 text-white' 
+              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+          }`}
+        >
+          Semua Tanggal
+        </button>
+        <input
+          type="date"
+          value={selectedDate !== 'all' ? selectedDate : ''}
+          onChange={(e) => {
+            if (e.target.value) {
+              setSelectedDate(e.target.value)
+            }
+          }}
+          className="px-4 py-2 border-2 border-gray-300 rounded-lg text-gray-700 bg-white focus:outline-none focus:border-blue-500 cursor-pointer"
+          style={{ minWidth: '160px' }}
+        />
       </div>
 
       {/* Stats Cards Section */}
