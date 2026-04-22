@@ -8,13 +8,24 @@ import Card from '../components/UI/Card'
 export default function Histori({ onLogout }) {
   const navigate = useNavigate()
   const [historyData, setHistoryData] = useState([])
+  const [allDates, setAllDates] = useState([])
+  const [selectedDate, setSelectedDate] = useState('all')
   const [currentPage, setCurrentPage] = useState(1)
   const [showPrintPreview, setShowPrintPreview] = useState(false)
   const [previewItem, setPreviewItem] = useState(null)
   const itemsPerPage = 5
-  const totalPages = Math.ceil(historyData.length / itemsPerPage)
 
-  const paginatedData = historyData.slice(
+  // Filter data berdasarkan tanggal yang dipilih
+  const filteredData = selectedDate === 'all' ? historyData : historyData.filter(item => {
+    if (item.tanggal) {
+      const itemDate = new Date(item.tanggal).toISOString().split('T')[0]
+      return itemDate === selectedDate
+    }
+    return false
+  })
+
+  const totalPages = Math.ceil(filteredData.length / itemsPerPage)
+  const paginatedData = filteredData.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   )
@@ -35,12 +46,26 @@ export default function Histori({ onLogout }) {
           lajur: item.lajur || '-',
         }))
         setHistoryData(normalized)
+
+        // Extract unique dates
+        const uniqueDates = [...new Set(normalized.map(item => {
+          if (item.tanggal) {
+            return new Date(item.tanggal).toISOString().split('T')[0]
+          }
+          return null
+        }).filter(Boolean))].sort().reverse()
+        setAllDates(uniqueDates)
       } catch (err) {
         console.error('Error fetching history:', err)
       }
     }
     fetchHistory()
   }, [])
+
+  // Reset pagination when selectedDate changes
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [selectedDate])
 
   // Export PDF for single lane
   const handleExportPDFLane = (item) => {
@@ -166,8 +191,32 @@ export default function Histori({ onLogout }) {
 
       {/* History Table */}
       <Card className="!p-0">
-        <div className="p-6 border-b border-gray-200">
+        <div className="p-6 border-b border-gray-200 flex items-center justify-between">
           <h3 className="text-lg font-semibold text-gray-900">Riwayat Analisis</h3>
+          <div className="flex gap-3">
+            <button 
+              onClick={() => setSelectedDate('all')}
+              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                selectedDate === 'all' 
+                  ? 'bg-blue-500 text-white' 
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              Semua Tanggal
+            </button>
+            <input
+              type="date"
+              value={selectedDate !== 'all' ? selectedDate : ''}
+              onChange={(e) => {
+                if (e.target.value) {
+                  setSelectedDate(e.target.value)
+                  setCurrentPage(1)
+                }
+              }}
+              className="px-4 py-2 border-2 border-gray-300 rounded-lg text-gray-700 bg-white focus:outline-none focus:border-blue-500 cursor-pointer"
+              style={{ minWidth: '160px' }}
+            />
+          </div>
         </div>
         <div className="p-6">
           {historyData.length === 0 ? (
@@ -243,7 +292,7 @@ export default function Histori({ onLogout }) {
               {/* Pagination */}
               <div className="mt-6 flex justify-between items-center">
                 <p className="text-sm text-gray-600">
-                  Menampilkan {(currentPage - 1) * itemsPerPage + 1} - {Math.min(currentPage * itemsPerPage, historyData.length)} dari {historyData.length}
+                  Menampilkan {(currentPage - 1) * itemsPerPage + 1} - {Math.min(currentPage * itemsPerPage, filteredData.length)} dari {filteredData.length}
                 </p>
                 <div className="flex gap-2">
                   <button
