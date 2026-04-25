@@ -37,6 +37,12 @@ export default function Histori({ onLogout }) {
         bValue = new Date(b.tanggal)
       }
 
+      // Handle calculated kendaraan (Volume Kendaraan)
+      if (sortConfig.key === 'kendaraan') {
+        aValue = (a.mobil || 0) + (a.bus || 0) + (a.truk || 0)
+        bValue = (b.mobil || 0) + (b.bus || 0) + (b.truk || 0)
+      }
+
       // Handle numeric values
       if (typeof aValue === 'number' && typeof bValue === 'number') {
         return sortConfig.direction === 'asc' ? aValue - bValue : bValue - aValue
@@ -362,21 +368,21 @@ export default function Histori({ onLogout }) {
                       <th className="px-2 py-2 text-left font-semibold whitespace-nowrap min-w-max">Lajur</th>
                       <th className="px-2 py-2 text-center font-semibold whitespace-nowrap min-w-max">
                         <button onClick={() => handleSort('intervalWaktu')} className="flex items-center gap-0.5 hover:text-blue-600 justify-center w-full text-xs">
-                          Waktu <span className="text-xs">⬍</span>
+                          Waktu Rekaman <span className="text-xs">⬍</span>
                         </button>
                       </th>
-                      <th className="px-2 py-2 text-center font-semibold whitespace-nowrap min-w-max">Durasi</th>
+                      <th className="px-2 py-2 text-center font-semibold whitespace-nowrap min-w-max">Durasi Video</th>
                       <th className="px-2 py-2 text-center font-semibold whitespace-nowrap min-w-max">
                         <button onClick={() => handleSort('kendaraan')} className="flex items-center gap-0.5 hover:text-blue-600 justify-center w-full text-xs">
-                          Vol. <br/>Kend. <span className="text-xs">⬍</span>
+                          Volume Kend. <span className="text-xs">⬍</span>
                         </button>
                       </th>
                       <th className="px-2 py-2 text-center font-semibold whitespace-nowrap min-w-max">
                         <button onClick={() => handleSort('volume')} className="flex items-center gap-0.5 hover:text-blue-600 justify-center w-full text-xs">
-                          Vol. <br/>SMP <span className="text-xs">⬍</span>
+                          Volume SMP <span className="text-xs">⬍</span>
                         </button>
                       </th>
-                      <th className="px-2 py-2 text-center font-semibold whitespace-nowrap min-w-max">Kap. <br/>Jalan</th>
+                      <th className="px-2 py-2 text-center font-semibold whitespace-nowrap min-w-max">Kapasitas Jalan</th>
                       <th className="px-2 py-2 text-center font-semibold whitespace-nowrap min-w-max">
                         <button onClick={() => handleSort('dj')} className="flex items-center gap-0.5 hover:text-blue-600 justify-center w-full text-xs">
                           DJ <span className="text-xs">⬍</span>
