@@ -13,7 +13,8 @@ export default function Histori({ onLogout }) {
   const [currentPage, setCurrentPage] = useState(1)
   const [showPrintPreview, setShowPrintPreview] = useState(false)
   const [previewItem, setPreviewItem] = useState(null)
-  const itemsPerPage = 5
+  const [itemsPerPage, setItemsPerPage] = useState(5)
+  const [sortConfig, setSortConfig] = useState({ key: 'tanggal', direction: 'desc' })
 
   // Filter data berdasarkan tanggal yang dipilih
   const filteredData = selectedDate === 'all' ? historyData : historyData.filter(item => {
@@ -24,11 +25,49 @@ export default function Histori({ onLogout }) {
     return false
   })
 
-  const totalPages = Math.ceil(filteredData.length / itemsPerPage)
-  const paginatedData = filteredData.slice(
+  // Sort data
+  const getSortedData = () => {
+    const sorted = [...filteredData].sort((a, b) => {
+      let aValue = a[sortConfig.key]
+      let bValue = b[sortConfig.key]
+
+      // Handle date
+      if (sortConfig.key === 'tanggal') {
+        aValue = new Date(a.tanggal)
+        bValue = new Date(b.tanggal)
+      }
+
+      // Handle numeric values
+      if (typeof aValue === 'number' && typeof bValue === 'number') {
+        return sortConfig.direction === 'asc' ? aValue - bValue : bValue - aValue
+      }
+
+      // Handle string values
+      if (typeof aValue === 'string' && typeof bValue === 'string') {
+        return sortConfig.direction === 'asc'
+          ? aValue.localeCompare(bValue)
+          : bValue.localeCompare(aValue)
+      }
+
+      return 0
+    })
+
+    return sorted
+  }
+
+  const sortedData = getSortedData()
+  const totalPages = Math.ceil(sortedData.length / itemsPerPage)
+  const paginatedData = sortedData.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   )
+
+  const handleSort = (key) => {
+    setSortConfig(prev => ({
+      key,
+      direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc'
+    }))
+  }
 
   // Fetch history data
   useEffect(() => {
@@ -152,6 +191,78 @@ export default function Histori({ onLogout }) {
     doc.save(`Laporan-${laneLabel}-${new Date().toISOString().split('T')[0]}.pdf`)
   }
 
+  // Export PDF for all filtered history
+  const handleExportPDFAll = () => {
+    if (sortedData.length === 0) {
+      alert('Tidak ada data untuk diunduh')
+      return
+    }
+
+    const doc = new jsPDF('l', 'mm', 'a4')
+    const dateLabel = selectedDate === 'all' ? 'Semua Tanggal' : new Date(selectedDate).toLocaleDateString('id-ID')
+
+    // Header
+    doc.setFontSize(16)
+    doc.text('LAPORAN RIWAYAT ANALISIS LALU LINTAS', 148, 15, { align: 'center' })
+    
+    doc.setFontSize(11)
+    doc.text(`Periode: ${dateLabel}`, 148, 22, { align: 'center' })
+    
+    doc.setFontSize(9)
+    doc.text(`Tanggal Cetak: ${new Date().toLocaleDateString('id-ID')}`, 148, 28, { align: 'center' })
+
+    // Prepare table data
+    const tableHead = [
+      ['No', 'Tanggal', 'Nama Ruas', 'Tipe Jalan', 'Lajur', 'Waktu Rekaman', 'Durasi', 'Vol. (kend/jam)', 'Vol. (smp/jam)', 'Kapasitas (C)', 'DJ', 'LOS']
+    ]
+
+    const tableBody = sortedData.map((item, index) => [
+      index + 1,
+      new Date(item.tanggal).toLocaleDateString('id-ID'),
+      item.namaRuas || '-',
+      item.tipeJalan || '-',
+      item.lajur || '-',
+      item.intervalWaktu || '-',
+      item.durasi || '-',
+      (item.mobil || 0) + (item.bus || 0) + (item.truk || 0),
+      Math.round(item.volume || ((item.mobil || 0) + (item.bus || 0) * 1.6 + (item.truk || 0) * 2)),
+      '5000',
+      (item.dj || 0).toFixed(3),
+      item.levelPelayanan || '-'
+    ])
+
+    autoTable(doc, {
+      head: tableHead,
+      body: tableBody,
+      startY: 35,
+      theme: 'grid',
+      headStyles: { fillColor: [64, 64, 64], textColor: [255, 255, 255], fontSize: 8, halign: 'center' },
+      bodyStyles: { fontSize: 8 },
+      columnStyles: {
+        0: { halign: 'center' },
+        1: { halign: 'center' },
+        5: { halign: 'center' },
+        6: { halign: 'center' },
+        7: { halign: 'center' },
+        8: { halign: 'center' },
+        9: { halign: 'center' },
+        10: { halign: 'center' },
+        11: { halign: 'center' }
+      },
+      margin: { left: 10, right: 10 }
+    })
+
+    // Footer
+    doc.setFontSize(8)
+    doc.text(`Total Data: ${sortedData.length} | © 2025 Kinerja Ruas Jalan`, 148, doc.internal.pageSize.height - 10, { align: 'center' })
+
+    const filename = selectedDate === 'all' 
+      ? `Laporan-Histori-${new Date().toISOString().split('T')[0]}.pdf`
+      : `Laporan-Histori-${selectedDate}.pdf`
+    
+    doc.save(filename)
+  }
+
   // Print preview
   const handlePrintPreviewLane = (item) => {
     if (!item) return
@@ -191,32 +302,46 @@ export default function Histori({ onLogout }) {
 
       {/* History Table */}
       <Card className="!p-0">
-        <div className="p-6 border-b border-gray-200 flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-gray-900">Riwayat Analisis</h3>
-          <div className="flex gap-3">
-            <button 
-              onClick={() => setSelectedDate('all')}
-              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                selectedDate === 'all' 
-                  ? 'bg-blue-500 text-white' 
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              Semua Tanggal
-            </button>
-            <input
-              type="date"
-              value={selectedDate !== 'all' ? selectedDate : ''}
-              onChange={(e) => {
-                if (e.target.value) {
-                  setSelectedDate(e.target.value)
+        <div className="p-6 border-b border-gray-200">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-gray-900">Riwayat Analisis</h3>
+            <div className="flex gap-3">
+              <button 
+                onClick={() => {
+                  setSelectedDate('all')
                   setCurrentPage(1)
-                }
-              }}
-              className="px-4 py-2 border-2 border-gray-300 rounded-lg text-gray-700 bg-white focus:outline-none focus:border-blue-500 cursor-pointer"
-              style={{ minWidth: '160px' }}
-            />
+                }}
+                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                  selectedDate === 'all' 
+                    ? 'bg-blue-500 text-white' 
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                Semua Tanggal
+              </button>
+              <input
+                type="date"
+                value={selectedDate !== 'all' ? selectedDate : ''}
+                onChange={(e) => {
+                  if (e.target.value) {
+                    setSelectedDate(e.target.value)
+                    setCurrentPage(1)
+                  }
+                }}
+                className="px-4 py-2 border-2 border-gray-300 rounded-lg text-gray-700 bg-white focus:outline-none focus:border-blue-500 cursor-pointer"
+                style={{ minWidth: '160px' }}
+              />
+            </div>
           </div>
+
+          {/* Download All Button */}
+          <button
+            onClick={handleExportPDFAll}
+            disabled={historyData.length === 0}
+            className="px-4 py-2 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+          >
+            📥 Download Semua Hasil Histori
+          </button>
         </div>
         <div className="p-6">
           {historyData.length === 0 ? (
@@ -230,70 +355,147 @@ export default function Histori({ onLogout }) {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-gray-300 bg-gray-100">
-                      <th className="px-4 py-3 text-left font-semibold">No</th>
-                      <th className="px-4 py-3 text-left font-semibold">Tanggal</th>
-                      <th className="px-4 py-3 text-left font-semibold">Nama Ruas</th>
-                      <th className="px-4 py-3 text-left font-semibold">Tipe Jalan</th>
-                      <th className="px-4 py-3 text-left font-semibold">Lajur</th>
-                      <th className="px-4 py-3 text-center font-semibold">Waktu Rekaman</th>
-                      <th className="px-4 py-3 text-center font-semibold">Durasi Video</th>
-                      <th className="px-4 py-3 text-center font-semibold">DJ</th>
-                      <th className="px-4 py-3 text-center font-semibold">LOS</th>
+                      <th className="px-4 py-3 text-left font-semibold">
+                        <button onClick={() => handleSort('no')} className="flex items-center gap-1 hover:text-blue-600">
+                          No <span className="text-xs">⬍</span>
+                        </button>
+                      </th>
+                      <th className="px-4 py-3 text-left font-semibold">
+                        <button onClick={() => handleSort('tanggal')} className="flex items-center gap-1 hover:text-blue-600">
+                          Tanggal <span className="text-xs">⬍</span>
+                        </button>
+                      </th>
+                      <th className="px-4 py-3 text-left font-semibold">
+                        <button onClick={() => handleSort('namaRuas')} className="flex items-center gap-1 hover:text-blue-600">
+                          Nama Ruas <span className="text-xs">⬍</span>
+                        </button>
+                      </th>
+                      <th className="px-4 py-3 text-left font-semibold">
+                        <button onClick={() => handleSort('tipeJalan')} className="flex items-center gap-1 hover:text-blue-600">
+                          Tipe Jalan <span className="text-xs">⬍</span>
+                        </button>
+                      </th>
+                      <th className="px-4 py-3 text-left font-semibold">
+                        <button onClick={() => handleSort('lajur')} className="flex items-center gap-1 hover:text-blue-600">
+                          Lajur <span className="text-xs">⬍</span>
+                        </button>
+                      </th>
+                      <th className="px-4 py-3 text-center font-semibold">
+                        <button onClick={() => handleSort('intervalWaktu')} className="flex items-center gap-1 hover:text-blue-600 justify-center w-full">
+                          Waktu Rekaman <span className="text-xs">⬍</span>
+                        </button>
+                      </th>
+                      <th className="px-4 py-3 text-center font-semibold">
+                        <button onClick={() => handleSort('durasi')} className="flex items-center gap-1 hover:text-blue-600 justify-center w-full">
+                          Durasi Video <span className="text-xs">⬍</span>
+                        </button>
+                      </th>
+                      <th className="px-4 py-3 text-center font-semibold">
+                        <button onClick={() => handleSort('kendaraan')} className="flex items-center gap-1 hover:text-blue-600 justify-center w-full">
+                          Volume (kend/jam) <span className="text-xs">⬍</span>
+                        </button>
+                      </th>
+                      <th className="px-4 py-3 text-center font-semibold">
+                        <button onClick={() => handleSort('volume')} className="flex items-center gap-1 hover:text-blue-600 justify-center w-full">
+                          Volume (smp/jam) <span className="text-xs">⬍</span>
+                        </button>
+                      </th>
+                      <th className="px-4 py-3 text-center font-semibold">
+                        <button onClick={() => handleSort('kapasitas')} className="flex items-center gap-1 hover:text-blue-600 justify-center w-full">
+                          Kapasitas Jalan (C) <span className="text-xs">⬍</span>
+                        </button>
+                      </th>
+                      <th className="px-4 py-3 text-center font-semibold">
+                        <button onClick={() => handleSort('dj')} className="flex items-center gap-1 hover:text-blue-600 justify-center w-full">
+                          DJ <span className="text-xs">⬍</span>
+                        </button>
+                      </th>
+                      <th className="px-4 py-3 text-center font-semibold">
+                        <button onClick={() => handleSort('levelPelayanan')} className="flex items-center gap-1 hover:text-blue-600 justify-center w-full">
+                          LOS <span className="text-xs">⬍</span>
+                        </button>
+                      </th>
                       <th className="px-4 py-3 text-center font-semibold">Aksi</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {paginatedData.map((item, index) => (
-                      <tr key={item.id || index} className="border-b border-gray-200 hover:bg-gray-50">
-                        <td className="px-4 py-3">{(currentPage - 1) * itemsPerPage + index + 1}</td>
-                        <td className="px-4 py-3">{new Date(item.tanggal).toLocaleDateString('id-ID')}</td>
-                        <td className="px-4 py-3">{item.namaRuas || '-'}</td>
-                        <td className="px-4 py-3">{item.tipeJalan || '-'}</td>
-                        <td className="px-4 py-3">{item.lajur}</td>
-                        <td className="px-4 py-3 text-center">{item.intervalWaktu || '-'}</td>
-                        <td className="px-4 py-3 text-center">{item.durasi || '-'}</td>
-                        <td className="px-4 py-3 text-center">{(item.dj || 0).toFixed(3)}</td>
-                        <td className="px-4 py-3 text-center">
-                          <span className="px-2 py-1 rounded-lg font-semibold text-white bg-blue-600">
-                            {item.levelPelayanan}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 text-center">
-                          <div className="flex gap-2 justify-center">
-                            <button
-                              onClick={() => handlePrintPreviewLane(item)}
-                              className="text-blue-600 hover:text-blue-800 hover:bg-blue-100 p-2 rounded font-semibold"
-                              title="Preview"
-                            >
-                              👁️
-                            </button>
-                            <button
-                              onClick={() => handleExportPDFLane(item)}
-                              className="text-green-600 hover:text-green-800 hover:bg-green-100 p-2 rounded font-semibold"
-                              title="Download PDF"
-                            >
-                              📥
-                            </button>
-                            <button
-                              onClick={() => handleDeleteHistori(item._id, item.namaRuas)}
-                              className="text-red-600 hover:text-red-800 hover:bg-red-100 p-2 rounded font-semibold"
-                              title="Hapus Data"
-                            >
-                              🗑️
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
+                    {paginatedData.map((item, index) => {
+                      const volumeKendaraan = (item.mobil || 0) + (item.bus || 0) + (item.truk || 0)
+                      const volumeSmp = Math.round(item.volume || ((item.mobil || 0) + (item.bus || 0) * 1.6 + (item.truk || 0) * 2))
+                      return (
+                        <tr key={item._id || index} className="border-b border-gray-200 hover:bg-gray-50">
+                          <td className="px-4 py-3">{(currentPage - 1) * itemsPerPage + index + 1}</td>
+                          <td className="px-4 py-3">{new Date(item.tanggal).toLocaleDateString('id-ID')}</td>
+                          <td className="px-4 py-3">{item.namaRuas || '-'}</td>
+                          <td className="px-4 py-3">{item.tipeJalan || '-'}</td>
+                          <td className="px-4 py-3">{item.lajur}</td>
+                          <td className="px-4 py-3 text-center">{item.intervalWaktu || '-'}</td>
+                          <td className="px-4 py-3 text-center">{item.durasi || '-'}</td>
+                          <td className="px-4 py-3 text-center">{volumeKendaraan}</td>
+                          <td className="px-4 py-3 text-center">{volumeSmp}</td>
+                          <td className="px-4 py-3 text-center">5000</td>
+                          <td className="px-4 py-3 text-center">{(item.dj || 0).toFixed(3)}</td>
+                          <td className="px-4 py-3 text-center">
+                            <span className="px-2 py-1 rounded-lg font-semibold text-white bg-blue-600">
+                              {item.levelPelayanan}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            <div className="flex gap-2 justify-center">
+                              <button
+                                onClick={() => handlePrintPreviewLane(item)}
+                                className="text-blue-600 hover:text-blue-800 hover:bg-blue-100 p-2 rounded font-semibold"
+                                title="Preview"
+                              >
+                                👁️
+                              </button>
+                              <button
+                                onClick={() => handleExportPDFLane(item)}
+                                className="text-green-600 hover:text-green-800 hover:bg-green-100 p-2 rounded font-semibold"
+                                title="Download PDF"
+                              >
+                                📥
+                              </button>
+                              <button
+                                onClick={() => handleDeleteHistori(item._id, item.namaRuas)}
+                                className="text-red-600 hover:text-red-800 hover:bg-red-100 p-2 rounded font-semibold"
+                                title="Hapus Data"
+                              >
+                                🗑️
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      )
+                    })}
                   </tbody>
                 </table>
               </div>
 
               {/* Pagination */}
-              <div className="mt-6 flex justify-between items-center">
+              <div className="mt-6 flex justify-between items-center flex-wrap gap-4">
+                <div className="flex items-center gap-3">
+                  <label className="text-sm font-medium text-gray-700">Menampilkan data per halaman:</label>
+                  <select
+                    value={itemsPerPage}
+                    onChange={(e) => {
+                      setItemsPerPage(e.target.value === 'all' ? sortedData.length : parseInt(e.target.value))
+                      setCurrentPage(1)
+                    }}
+                    className="px-3 py-2 border border-gray-300 rounded-lg text-gray-700 bg-white focus:outline-none focus:border-blue-500"
+                  >
+                    <option value="5">5</option>
+                    <option value="10">10</option>
+                    <option value="25">25</option>
+                    <option value="50">50</option>
+                    <option value="all">Semua</option>
+                  </select>
+                </div>
+
                 <p className="text-sm text-gray-600">
-                  Menampilkan {(currentPage - 1) * itemsPerPage + 1} - {Math.min(currentPage * itemsPerPage, filteredData.length)} dari {filteredData.length}
+                  Menampilkan {sortedData.length === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1} - {Math.min(currentPage * itemsPerPage, sortedData.length)} dari {sortedData.length}
                 </p>
+
                 <div className="flex gap-2">
                   <button
                     onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
@@ -303,11 +505,11 @@ export default function Histori({ onLogout }) {
                     ◀
                   </button>
                   <div className="flex items-center px-3 py-1.5 border border-blue-600 rounded-lg bg-blue-600 text-white">
-                    {currentPage}
+                    {currentPage} / {totalPages}
                   </div>
                   <button
                     onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-                    disabled={currentPage === totalPages}
+                    disabled={currentPage === totalPages || sortedData.length === 0}
                     className="px-3 py-1.5 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     ▶
@@ -399,6 +601,18 @@ export default function Histori({ onLogout }) {
                 </table>
               </div>
 
+              {/* Summary Stats */}
+              <div style={{ marginBottom: '15px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', fontSize: '11px' }}>
+                <div style={{ border: '1px solid #ccc', padding: '10px', backgroundColor: '#f9f9f9' }}>
+                  <p style={{ margin: '0', color: '#666', fontWeight: 'bold' }}>Volume Kendaraan</p>
+                  <p style={{ margin: '5px 0 0 0', fontSize: '14px', fontWeight: 'bold' }}>{(previewItem.mobil || 0) + (previewItem.bus || 0) + (previewItem.truk || 0)} kend/jam</p>
+                </div>
+                <div style={{ border: '1px solid #ccc', padding: '10px', backgroundColor: '#f9f9f9' }}>
+                  <p style={{ margin: '0', color: '#666', fontWeight: 'bold' }}>Kapasitas Jalan</p>
+                  <p style={{ margin: '5px 0 0 0', fontSize: '14px', fontWeight: 'bold' }}>5000 smp/jam</p>
+                </div>
+              </div>
+
               {/* Results */}
               <div style={{ marginBottom: '15px', border: '1px solid #ccc', padding: '10px' }}>
                 <p style={{ margin: '0 0 10px 0', fontWeight: 'bold', fontSize: '11px' }}>HASIL PERHITUNGAN</p>
@@ -411,12 +625,16 @@ export default function Histori({ onLogout }) {
                   </thead>
                   <tbody>
                     <tr>
-                      <td style={{ border: '1px solid #999', padding: '6px' }}>Volume (Q)</td>
-                      <td style={{ border: '1px solid #999', padding: '6px', textAlign: 'center' }}>{Math.round(previewItem.volume || ((previewItem.mobil || 0) + (previewItem.bus || 0) * 1.6 + (previewItem.truk || 0) * 2))} smp/jam</td>
+                      <td style={{ border: '1px solid #999', padding: '6px' }}>Volume Kendaraan (kend/jam)</td>
+                      <td style={{ border: '1px solid #999', padding: '6px', textAlign: 'center' }}>{(previewItem.mobil || 0) + (previewItem.bus || 0) + (previewItem.truk || 0)}</td>
+                    </tr>
+                    <tr>
+                      <td style={{ border: '1px solid #999', padding: '6px' }}>Volume (smp/jam)</td>
+                      <td style={{ border: '1px solid #999', padding: '6px', textAlign: 'center' }}>{Math.round(previewItem.volume || ((previewItem.mobil || 0) + (previewItem.bus || 0) * 1.6 + (previewItem.truk || 0) * 2))}</td>
                     </tr>
                     <tr>
                       <td style={{ border: '1px solid #999', padding: '6px' }}>Kapasitas (C)</td>
-                      <td style={{ border: '1px solid #999', padding: '6px', textAlign: 'center' }}>5000 smp/jam</td>
+                      <td style={{ border: '1px solid #999', padding: '6px', textAlign: 'center' }}>5000</td>
                     </tr>
                     <tr>
                       <td style={{ border: '1px solid #999', padding: '6px' }}>DJ</td>
