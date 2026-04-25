@@ -52,9 +52,9 @@ export default function Histori({ onLogout }) {
 
         let comparison = 0
 
-        // Handle numeric values
+        // Handle numeric values (reverse logic for UI: asc = biggest first, desc = smallest first)
         if (typeof aValue === 'number' && typeof bValue === 'number') {
-          comparison = direction === 'asc' ? aValue - bValue : bValue - aValue
+          comparison = direction === 'asc' ? bValue - aValue : aValue - bValue
         }
         // Handle string values
         else if (typeof aValue === 'string' && typeof bValue === 'string') {
