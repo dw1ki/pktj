@@ -124,14 +124,14 @@ export default function Histori({ onLogout }) {
               handleSort(key)
             }
           }}
-          className={`px-0.5 leading-none text-lg font-bold transition-colors ${
+          className={`px-0.5 leading-none text-xs font-bold transition-colors ${
             sortItem?.direction === 'asc'
               ? 'text-black'
               : 'text-gray-300'
           }`}
           title="Terbesar"
         >
-          ⋀
+          ↑
         </button>
         
         {/* Descending (Bawah - Terkecil) */}
@@ -152,14 +152,14 @@ export default function Histori({ onLogout }) {
               })
             }
           }}
-          className={`px-0.5 leading-none text-lg font-bold transition-colors ${
+          className={`px-0.5 leading-none text-xs font-bold transition-colors ${
             sortItem?.direction === 'desc'
               ? 'text-black'
               : 'text-gray-300'
           }`}
           title="Terkecil"
         >
-          ⋁
+          ↓
         </button>
       </div>
     )
