@@ -108,8 +108,8 @@ export default function Histori({ onLogout }) {
     const sortItem = sortConfig.find(s => s.key === key)
     
     return (
-      <div className="flex items-center gap-0.5">
-        {/* Ascending (Terbesar) */}
+      <div className="flex flex-col items-center gap-0">
+        {/* Ascending (Atas - Terbesar) */}
         <button
           onClick={(e) => {
             e.stopPropagation()
@@ -124,17 +124,17 @@ export default function Histori({ onLogout }) {
               handleSort(key)
             }
           }}
-          className={`px-1.5 py-0.5 rounded text-xs font-bold transition-colors ${
+          className={`px-0.5 leading-none text-lg font-bold transition-colors ${
             sortItem?.direction === 'asc'
-              ? 'bg-black text-white'
-              : 'bg-white border border-black text-black'
+              ? 'text-black'
+              : 'text-gray-300'
           }`}
           title="Terbesar"
         >
-          ↑
+          ⋀
         </button>
         
-        {/* Descending (Terkecil) */}
+        {/* Descending (Bawah - Terkecil) */}
         <button
           onClick={(e) => {
             e.stopPropagation()
@@ -152,14 +152,14 @@ export default function Histori({ onLogout }) {
               })
             }
           }}
-          className={`px-1.5 py-0.5 rounded text-xs font-bold transition-colors ${
+          className={`px-0.5 leading-none text-lg font-bold transition-colors ${
             sortItem?.direction === 'desc'
-              ? 'bg-black text-white'
-              : 'bg-white border border-black text-black'
+              ? 'text-black'
+              : 'text-gray-300'
           }`}
           title="Terkecil"
         >
-          ↓
+          ⋁
         </button>
       </div>
     )
