@@ -351,71 +351,43 @@ export default function Histori({ onLogout }) {
             </div>
           ) : (
             <>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
+              <div className="w-full">
+                <table className="w-full text-xs border-collapse">
                   <thead>
                     <tr className="border-b border-gray-300 bg-gray-100">
-                      <th className="px-4 py-3 text-left font-semibold">
-                        <button onClick={() => handleSort('no')} className="flex items-center gap-1 hover:text-blue-600">
-                          No <span className="text-xs">⬍</span>
+                      <th className="px-2 py-2 text-left font-semibold whitespace-nowrap min-w-max">No</th>
+                      <th className="px-2 py-2 text-left font-semibold whitespace-nowrap min-w-max">Tgl</th>
+                      <th className="px-2 py-2 text-left font-semibold whitespace-nowrap min-w-max">Nama Ruas</th>
+                      <th className="px-2 py-2 text-left font-semibold whitespace-nowrap min-w-max">Tipe</th>
+                      <th className="px-2 py-2 text-left font-semibold whitespace-nowrap min-w-max">Lajur</th>
+                      <th className="px-2 py-2 text-center font-semibold whitespace-nowrap min-w-max">
+                        <button onClick={() => handleSort('intervalWaktu')} className="flex items-center gap-0.5 hover:text-blue-600 justify-center w-full text-xs">
+                          Waktu <span className="text-xs">⬍</span>
                         </button>
                       </th>
-                      <th className="px-4 py-3 text-left font-semibold">
-                        <button onClick={() => handleSort('tanggal')} className="flex items-center gap-1 hover:text-blue-600">
-                          Tanggal <span className="text-xs">⬍</span>
+                      <th className="px-2 py-2 text-center font-semibold whitespace-nowrap min-w-max">Durasi</th>
+                      <th className="px-2 py-2 text-center font-semibold whitespace-nowrap min-w-max">
+                        <button onClick={() => handleSort('kendaraan')} className="flex items-center gap-0.5 hover:text-blue-600 justify-center w-full text-xs">
+                          Vol. <br/>Kend. <span className="text-xs">⬍</span>
                         </button>
                       </th>
-                      <th className="px-4 py-3 text-left font-semibold">
-                        <button onClick={() => handleSort('namaRuas')} className="flex items-center gap-1 hover:text-blue-600">
-                          Nama Ruas <span className="text-xs">⬍</span>
+                      <th className="px-2 py-2 text-center font-semibold whitespace-nowrap min-w-max">
+                        <button onClick={() => handleSort('volume')} className="flex items-center gap-0.5 hover:text-blue-600 justify-center w-full text-xs">
+                          Vol. <br/>SMP <span className="text-xs">⬍</span>
                         </button>
                       </th>
-                      <th className="px-4 py-3 text-left font-semibold">
-                        <button onClick={() => handleSort('tipeJalan')} className="flex items-center gap-1 hover:text-blue-600">
-                          Tipe Jalan <span className="text-xs">⬍</span>
-                        </button>
-                      </th>
-                      <th className="px-4 py-3 text-left font-semibold">
-                        <button onClick={() => handleSort('lajur')} className="flex items-center gap-1 hover:text-blue-600">
-                          Lajur <span className="text-xs">⬍</span>
-                        </button>
-                      </th>
-                      <th className="px-4 py-3 text-center font-semibold">
-                        <button onClick={() => handleSort('intervalWaktu')} className="flex items-center gap-1 hover:text-blue-600 justify-center w-full">
-                          Waktu Rekaman <span className="text-xs">⬍</span>
-                        </button>
-                      </th>
-                      <th className="px-4 py-3 text-center font-semibold">
-                        <button onClick={() => handleSort('durasi')} className="flex items-center gap-1 hover:text-blue-600 justify-center w-full">
-                          Durasi Video <span className="text-xs">⬍</span>
-                        </button>
-                      </th>
-                      <th className="px-4 py-3 text-center font-semibold">
-                        <button onClick={() => handleSort('kendaraan')} className="flex items-center gap-1 hover:text-blue-600 justify-center w-full">
-                          Volume (kend/jam) <span className="text-xs">⬍</span>
-                        </button>
-                      </th>
-                      <th className="px-4 py-3 text-center font-semibold">
-                        <button onClick={() => handleSort('volume')} className="flex items-center gap-1 hover:text-blue-600 justify-center w-full">
-                          Volume (smp/jam) <span className="text-xs">⬍</span>
-                        </button>
-                      </th>
-                      <th className="px-4 py-3 text-center font-semibold">
-                        <button onClick={() => handleSort('kapasitas')} className="flex items-center gap-1 hover:text-blue-600 justify-center w-full">
-                          Kapasitas Jalan (C) <span className="text-xs">⬍</span>
-                        </button>
-                      </th>
-                      <th className="px-4 py-3 text-center font-semibold">
-                        <button onClick={() => handleSort('dj')} className="flex items-center gap-1 hover:text-blue-600 justify-center w-full">
+                      <th className="px-2 py-2 text-center font-semibold whitespace-nowrap min-w-max">Kap. <br/>Jalan</th>
+                      <th className="px-2 py-2 text-center font-semibold whitespace-nowrap min-w-max">
+                        <button onClick={() => handleSort('dj')} className="flex items-center gap-0.5 hover:text-blue-600 justify-center w-full text-xs">
                           DJ <span className="text-xs">⬍</span>
                         </button>
                       </th>
-                      <th className="px-4 py-3 text-center font-semibold">
-                        <button onClick={() => handleSort('levelPelayanan')} className="flex items-center gap-1 hover:text-blue-600 justify-center w-full">
+                      <th className="px-2 py-2 text-center font-semibold whitespace-nowrap min-w-max">
+                        <button onClick={() => handleSort('levelPelayanan')} className="flex items-center gap-0.5 hover:text-blue-600 justify-center w-full text-xs">
                           LOS <span className="text-xs">⬍</span>
                         </button>
                       </th>
-                      <th className="px-4 py-3 text-center font-semibold">Aksi</th>
+                      <th className="px-2 py-2 text-center font-semibold whitespace-nowrap min-w-max">Aksi</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -424,41 +396,41 @@ export default function Histori({ onLogout }) {
                       const volumeSmp = Math.round(item.volume || ((item.mobil || 0) + (item.bus || 0) * 1.6 + (item.truk || 0) * 2))
                       return (
                         <tr key={item._id || index} className="border-b border-gray-200 hover:bg-gray-50">
-                          <td className="px-4 py-3">{(currentPage - 1) * itemsPerPage + index + 1}</td>
-                          <td className="px-4 py-3">{new Date(item.tanggal).toLocaleDateString('id-ID')}</td>
-                          <td className="px-4 py-3">{item.namaRuas || '-'}</td>
-                          <td className="px-4 py-3">{item.tipeJalan || '-'}</td>
-                          <td className="px-4 py-3">{item.lajur}</td>
-                          <td className="px-4 py-3 text-center">{item.intervalWaktu || '-'}</td>
-                          <td className="px-4 py-3 text-center">{item.durasi || '-'}</td>
-                          <td className="px-4 py-3 text-center">{volumeKendaraan}</td>
-                          <td className="px-4 py-3 text-center">{volumeSmp}</td>
-                          <td className="px-4 py-3 text-center">5000</td>
-                          <td className="px-4 py-3 text-center">{(item.dj || 0).toFixed(3)}</td>
-                          <td className="px-4 py-3 text-center">
-                            <span className="px-2 py-1 rounded-lg font-semibold text-white bg-blue-600">
+                          <td className="px-2 py-2 text-xs">{(currentPage - 1) * itemsPerPage + index + 1}</td>
+                          <td className="px-2 py-2 text-xs whitespace-nowrap">{new Date(item.tanggal).toLocaleDateString('id-ID')}</td>
+                          <td className="px-2 py-2 text-xs truncate max-w-xs">{item.namaRuas || '-'}</td>
+                          <td className="px-2 py-2 text-xs">{item.tipeJalan || '-'}</td>
+                          <td className="px-2 py-2 text-xs text-center">{item.lajur}</td>
+                          <td className="px-2 py-2 text-xs text-center whitespace-nowrap">{item.intervalWaktu || '-'}</td>
+                          <td className="px-2 py-2 text-xs text-center">{item.durasi || '-'}</td>
+                          <td className="px-2 py-2 text-xs text-center">{volumeKendaraan}</td>
+                          <td className="px-2 py-2 text-xs text-center">{volumeSmp}</td>
+                          <td className="px-2 py-2 text-xs text-center">5000</td>
+                          <td className="px-2 py-2 text-xs text-center">{(item.dj || 0).toFixed(3)}</td>
+                          <td className="px-2 py-2 text-xs text-center">
+                            <span className="px-1.5 py-0.5 rounded text-xs font-semibold text-white bg-blue-600 whitespace-nowrap inline-block">
                               {item.levelPelayanan}
                             </span>
                           </td>
-                          <td className="px-4 py-3 text-center">
-                            <div className="flex gap-2 justify-center">
+                          <td className="px-2 py-2 text-center">
+                            <div className="flex gap-1 justify-center">
                               <button
                                 onClick={() => handlePrintPreviewLane(item)}
-                                className="text-blue-600 hover:text-blue-800 hover:bg-blue-100 p-2 rounded font-semibold"
+                                className="text-blue-600 hover:text-blue-800 hover:bg-blue-100 p-1 rounded text-sm"
                                 title="Preview"
                               >
                                 👁️
                               </button>
                               <button
                                 onClick={() => handleExportPDFLane(item)}
-                                className="text-green-600 hover:text-green-800 hover:bg-green-100 p-2 rounded font-semibold"
+                                className="text-green-600 hover:text-green-800 hover:bg-green-100 p-1 rounded text-sm"
                                 title="Download PDF"
                               >
                                 📥
                               </button>
                               <button
                                 onClick={() => handleDeleteHistori(item._id, item.namaRuas)}
-                                className="text-red-600 hover:text-red-800 hover:bg-red-100 p-2 rounded font-semibold"
+                                className="text-red-600 hover:text-red-800 hover:bg-red-100 p-1 rounded text-sm"
                                 title="Hapus Data"
                               >
                                 🗑️
@@ -477,9 +449,13 @@ export default function Histori({ onLogout }) {
                 <div className="flex items-center gap-3">
                   <label className="text-sm font-medium text-gray-700">Menampilkan data per halaman:</label>
                   <select
-                    value={itemsPerPage}
+                    value={itemsPerPage === sortedData.length ? 'all' : itemsPerPage}
                     onChange={(e) => {
-                      setItemsPerPage(e.target.value === 'all' ? sortedData.length : parseInt(e.target.value))
+                      if (e.target.value === 'all') {
+                        setItemsPerPage(sortedData.length)
+                      } else {
+                        setItemsPerPage(parseInt(e.target.value))
+                      }
                       setCurrentPage(1)
                     }}
                     className="px-3 py-2 border border-gray-300 rounded-lg text-gray-700 bg-white focus:outline-none focus:border-blue-500"
