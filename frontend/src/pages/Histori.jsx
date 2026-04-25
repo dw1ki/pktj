@@ -14,7 +14,7 @@ export default function Histori({ onLogout }) {
   const [showPrintPreview, setShowPrintPreview] = useState(false)
   const [previewItem, setPreviewItem] = useState(null)
   const [itemsPerPage, setItemsPerPage] = useState(5)
-  const [sortConfig, setSortConfig] = useState({ key: 'tanggal', direction: 'desc' })
+  const [sortConfig, setSortConfig] = useState([])
 
   // Filter data berdasarkan tanggal yang dipilih
   const filteredData = selectedDate === 'all' ? historyData : historyData.filter(item => {
@@ -27,32 +27,47 @@ export default function Histori({ onLogout }) {
 
   // Sort data
   const getSortedData = () => {
+    if (sortConfig.length === 0) {
+      return [...filteredData]
+    }
+
     const sorted = [...filteredData].sort((a, b) => {
-      let aValue = a[sortConfig.key]
-      let bValue = b[sortConfig.key]
+      // Iterate through each sort criterion
+      for (let i = 0; i < sortConfig.length; i++) {
+        const { key, direction } = sortConfig[i]
+        let aValue = a[key]
+        let bValue = b[key]
 
-      // Handle date
-      if (sortConfig.key === 'tanggal') {
-        aValue = new Date(a.tanggal)
-        bValue = new Date(b.tanggal)
-      }
+        // Handle date
+        if (key === 'tanggal') {
+          aValue = new Date(a.tanggal)
+          bValue = new Date(b.tanggal)
+        }
 
-      // Handle calculated kendaraan (Volume Kendaraan)
-      if (sortConfig.key === 'kendaraan') {
-        aValue = (a.mobil || 0) + (a.bus || 0) + (a.truk || 0)
-        bValue = (b.mobil || 0) + (b.bus || 0) + (b.truk || 0)
-      }
+        // Handle calculated kendaraan (Volume Kendaraan)
+        if (key === 'kendaraan') {
+          aValue = (a.mobil || 0) + (a.bus || 0) + (a.truk || 0)
+          bValue = (b.mobil || 0) + (b.bus || 0) + (b.truk || 0)
+        }
 
-      // Handle numeric values
-      if (typeof aValue === 'number' && typeof bValue === 'number') {
-        return sortConfig.direction === 'asc' ? aValue - bValue : bValue - aValue
-      }
+        let comparison = 0
 
-      // Handle string values
-      if (typeof aValue === 'string' && typeof bValue === 'string') {
-        return sortConfig.direction === 'asc'
-          ? aValue.localeCompare(bValue)
-          : bValue.localeCompare(aValue)
+        // Handle numeric values
+        if (typeof aValue === 'number' && typeof bValue === 'number') {
+          comparison = direction === 'asc' ? aValue - bValue : bValue - aValue
+        }
+        // Handle string values
+        else if (typeof aValue === 'string' && typeof bValue === 'string') {
+          comparison = direction === 'asc'
+            ? aValue.localeCompare(bValue)
+            : bValue.localeCompare(aValue)
+        }
+
+        // If not equal, return the comparison result
+        if (comparison !== 0) {
+          return comparison
+        }
+        // If equal, continue to next sort criterion
       }
 
       return 0
@@ -69,10 +84,40 @@ export default function Histori({ onLogout }) {
   )
 
   const handleSort = (key) => {
-    setSortConfig(prev => ({
-      key,
-      direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc'
-    }))
+    setSortConfig(prev => {
+      const existingSort = prev.find(s => s.key === key)
+      
+      if (existingSort) {
+        // Toggle direction or remove if desc
+        if (existingSort.direction === 'asc') {
+          // Change to desc
+          return prev.map(s => s.key === key ? { ...s, direction: 'desc' } : s)
+        } else {
+          // Remove from sort config
+          return prev.filter(s => s.key !== key)
+        }
+      } else {
+        // Add new sort criterion
+        return [...prev, { key, direction: 'asc' }]
+      }
+    })
+  }
+
+  // Get sort indicator for a column
+  const getSortIndicator = (key) => {
+    const sortIndex = sortConfig.findIndex(s => s.key === key)
+    if (sortIndex === -1) return null
+
+    const { direction } = sortConfig[sortIndex]
+    const arrow = direction === 'asc' ? '↑' : '↓'
+    const orderBadge = sortConfig.length > 1 ? `${sortIndex + 1}` : ''
+
+    return (
+      <div className="flex items-center gap-0.5">
+        <span className="text-xs font-bold">{arrow}</span>
+        {orderBadge && <span className="text-xs bg-blue-600 text-white px-1 rounded">{orderBadge}</span>}
+      </div>
+    )
   }
 
   // Fetch history data
@@ -340,14 +385,29 @@ export default function Histori({ onLogout }) {
             </div>
           </div>
 
-          {/* Download All Button */}
-          <button
-            onClick={handleExportPDFAll}
-            disabled={historyData.length === 0}
-            className="px-4 py-2 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
-          >
-            📥 Download Semua Hasil Histori
-          </button>
+          {/* Download All Button & Sort Info */}
+          <div className="flex items-center justify-between gap-4">
+            <button
+              onClick={handleExportPDFAll}
+              disabled={historyData.length === 0}
+              className="px-4 py-2 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+            >
+              📥 Download Semua Hasil Histori
+            </button>
+            <div className="flex items-center gap-2">
+              {sortConfig.length > 0 && (
+                <>
+                  <span className="text-xs text-gray-600">Sorting: {sortConfig.length} kolom</span>
+                  <button
+                    onClick={() => setSortConfig([])}
+                    className="px-3 py-1 text-xs bg-gray-200 text-gray-700 rounded hover:bg-gray-300 transition-colors"
+                  >
+                    Reset Sort
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
         </div>
         <div className="p-6">
           {historyData.length === 0 ? (
@@ -357,6 +417,12 @@ export default function Histori({ onLogout }) {
             </div>
           ) : (
             <>
+              {/* Multi-Sort Info Banner */}
+              <div className="mb-4 bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <p className="text-xs text-blue-900">
+                  💡 <strong>Multi-Sort:</strong> Klik tombol sort di kolom untuk menambahkan urutan sort. Panah ↑↓ menunjukkan arah sort, nomor menunjukkan urutan prioritas. Klik lagi untuk mengubah arah, atau klik Reset Sort untuk menghapus semua.
+                </p>
+              </div>
               <div className="w-full">
                 <table className="w-full text-xs border-collapse">
                   <thead>
@@ -365,32 +431,36 @@ export default function Histori({ onLogout }) {
                       <th className="px-2 py-2 text-left font-semibold whitespace-nowrap min-w-max">Tgl</th>
                       <th className="px-2 py-2 text-left font-semibold whitespace-nowrap min-w-max">Nama Ruas</th>
                       <th className="px-2 py-2 text-left font-semibold whitespace-nowrap min-w-max">Tipe</th>
-                      <th className="px-2 py-2 text-left font-semibold whitespace-nowrap min-w-max">Lajur</th>
+                      <th className="px-2 py-2 text-left font-semibold whitespace-nowrap min-w-max">
+                        <button onClick={() => handleSort('lajur')} className="flex items-center gap-0.5 hover:text-blue-600 text-xs">
+                          Lajur {getSortIndicator('lajur')}
+                        </button>
+                      </th>
                       <th className="px-2 py-2 text-center font-semibold whitespace-nowrap min-w-max">
                         <button onClick={() => handleSort('intervalWaktu')} className="flex items-center gap-0.5 hover:text-blue-600 justify-center w-full text-xs">
-                          Waktu Rekaman <span className="text-xs">⬍</span>
+                          Waktu Rekaman {getSortIndicator('intervalWaktu')}
                         </button>
                       </th>
                       <th className="px-2 py-2 text-center font-semibold whitespace-nowrap min-w-max">Durasi Video</th>
                       <th className="px-2 py-2 text-center font-semibold whitespace-nowrap min-w-max">
                         <button onClick={() => handleSort('kendaraan')} className="flex items-center gap-0.5 hover:text-blue-600 justify-center w-full text-xs">
-                          Volume Kend. <span className="text-xs">⬍</span>
+                          Volume Kend. {getSortIndicator('kendaraan')}
                         </button>
                       </th>
                       <th className="px-2 py-2 text-center font-semibold whitespace-nowrap min-w-max">
                         <button onClick={() => handleSort('volume')} className="flex items-center gap-0.5 hover:text-blue-600 justify-center w-full text-xs">
-                          Volume SMP <span className="text-xs">⬍</span>
+                          Volume SMP {getSortIndicator('volume')}
                         </button>
                       </th>
                       <th className="px-2 py-2 text-center font-semibold whitespace-nowrap min-w-max">Kapasitas Jalan</th>
                       <th className="px-2 py-2 text-center font-semibold whitespace-nowrap min-w-max">
                         <button onClick={() => handleSort('dj')} className="flex items-center gap-0.5 hover:text-blue-600 justify-center w-full text-xs">
-                          DJ <span className="text-xs">⬍</span>
+                          DJ {getSortIndicator('dj')}
                         </button>
                       </th>
                       <th className="px-2 py-2 text-center font-semibold whitespace-nowrap min-w-max">
                         <button onClick={() => handleSort('levelPelayanan')} className="flex items-center gap-0.5 hover:text-blue-600 justify-center w-full text-xs">
-                          LOS <span className="text-xs">⬍</span>
+                          LOS {getSortIndicator('levelPelayanan')}
                         </button>
                       </th>
                       <th className="px-2 py-2 text-center font-semibold whitespace-nowrap min-w-max">Aksi</th>
