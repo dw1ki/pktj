@@ -105,17 +105,62 @@ export default function Histori({ onLogout }) {
 
   // Get sort indicator for a column
   const getSortIndicator = (key) => {
-    const sortIndex = sortConfig.findIndex(s => s.key === key)
-    if (sortIndex === -1) return null
-
-    const { direction } = sortConfig[sortIndex]
-    const arrow = direction === 'asc' ? '↑' : '↓'
-    const orderBadge = sortConfig.length > 1 ? `${sortIndex + 1}` : ''
-
+    const sortItem = sortConfig.find(s => s.key === key)
+    
     return (
       <div className="flex items-center gap-0.5">
-        <span className="text-xs font-bold">{arrow}</span>
-        {orderBadge && <span className="text-xs bg-blue-600 text-white px-1 rounded">{orderBadge}</span>}
+        {/* Ascending (Terbesar) */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation()
+            if (sortItem?.direction === 'asc') {
+              // Already asc, toggle to desc
+              handleSort(key)
+            } else if (sortItem?.direction === 'desc') {
+              // Is desc, change to asc
+              handleSort(key)
+            } else {
+              // Not sorted, add with asc
+              handleSort(key)
+            }
+          }}
+          className={`px-1.5 py-0.5 rounded text-xs font-bold transition-colors ${
+            sortItem?.direction === 'asc'
+              ? 'bg-black text-white'
+              : 'bg-white border border-black text-black'
+          }`}
+          title="Terbesar"
+        >
+          ↑
+        </button>
+        
+        {/* Descending (Terkecil) */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation()
+            if (sortItem?.direction === 'desc') {
+              // Already desc, toggle to asc
+              handleSort(key)
+            } else if (sortItem?.direction === 'asc') {
+              // Is asc, change to desc
+              handleSort(key)
+            } else {
+              // Not sorted, need to add then toggle
+              setSortConfig(prev => {
+                const newConfig = [...prev, { key, direction: 'asc' }]
+                return newConfig.map(s => s.key === key ? { ...s, direction: 'desc' } : s)
+              })
+            }
+          }}
+          className={`px-1.5 py-0.5 rounded text-xs font-bold transition-colors ${
+            sortItem?.direction === 'desc'
+              ? 'bg-black text-white'
+              : 'bg-white border border-black text-black'
+          }`}
+          title="Terkecil"
+        >
+          ↓
+        </button>
       </div>
     )
   }
@@ -417,12 +462,6 @@ export default function Histori({ onLogout }) {
             </div>
           ) : (
             <>
-              {/* Multi-Sort Info Banner */}
-              <div className="mb-4 bg-blue-50 border border-blue-200 rounded-lg p-3">
-                <p className="text-xs text-blue-900">
-                  💡 <strong>Multi-Sort:</strong> Klik tombol sort di kolom untuk menambahkan urutan sort. Panah ↑↓ menunjukkan arah sort, nomor menunjukkan urutan prioritas. Klik lagi untuk mengubah arah, atau klik Reset Sort untuk menghapus semua.
-                </p>
-              </div>
               <div className="w-full">
                 <table className="w-full text-xs border-collapse">
                   <thead>
@@ -432,35 +471,41 @@ export default function Histori({ onLogout }) {
                       <th className="px-2 py-2 text-left font-semibold whitespace-nowrap min-w-max">Nama Ruas</th>
                       <th className="px-2 py-2 text-left font-semibold whitespace-nowrap min-w-max">Tipe</th>
                       <th className="px-2 py-2 text-left font-semibold whitespace-nowrap min-w-max">
-                        <button onClick={() => handleSort('lajur')} className="flex items-center gap-0.5 hover:text-blue-600 text-xs">
-                          Lajur {getSortIndicator('lajur')}
+                        <button onClick={() => handleSort('lajur')} className="flex items-center gap-1 text-xs group">
+                          <span>Lajur</span>
+                          {getSortIndicator('lajur')}
                         </button>
                       </th>
                       <th className="px-2 py-2 text-center font-semibold whitespace-nowrap min-w-max">
-                        <button onClick={() => handleSort('intervalWaktu')} className="flex items-center gap-0.5 hover:text-blue-600 justify-center w-full text-xs">
-                          Waktu Rekaman {getSortIndicator('intervalWaktu')}
+                        <button onClick={() => handleSort('intervalWaktu')} className="flex items-center gap-1 justify-center w-full text-xs group">
+                          <span>Waktu Rekaman</span>
+                          {getSortIndicator('intervalWaktu')}
                         </button>
                       </th>
                       <th className="px-2 py-2 text-center font-semibold whitespace-nowrap min-w-max">Durasi Video</th>
                       <th className="px-2 py-2 text-center font-semibold whitespace-nowrap min-w-max">
-                        <button onClick={() => handleSort('kendaraan')} className="flex items-center gap-0.5 hover:text-blue-600 justify-center w-full text-xs">
-                          Volume Kend. {getSortIndicator('kendaraan')}
+                        <button onClick={() => handleSort('kendaraan')} className="flex items-center gap-1 justify-center w-full text-xs group">
+                          <span>Volume Kend.</span>
+                          {getSortIndicator('kendaraan')}
                         </button>
                       </th>
                       <th className="px-2 py-2 text-center font-semibold whitespace-nowrap min-w-max">
-                        <button onClick={() => handleSort('volume')} className="flex items-center gap-0.5 hover:text-blue-600 justify-center w-full text-xs">
-                          Volume SMP {getSortIndicator('volume')}
+                        <button onClick={() => handleSort('volume')} className="flex items-center gap-1 justify-center w-full text-xs group">
+                          <span>Volume SMP</span>
+                          {getSortIndicator('volume')}
                         </button>
                       </th>
                       <th className="px-2 py-2 text-center font-semibold whitespace-nowrap min-w-max">Kapasitas Jalan</th>
                       <th className="px-2 py-2 text-center font-semibold whitespace-nowrap min-w-max">
-                        <button onClick={() => handleSort('dj')} className="flex items-center gap-0.5 hover:text-blue-600 justify-center w-full text-xs">
-                          DJ {getSortIndicator('dj')}
+                        <button onClick={() => handleSort('dj')} className="flex items-center gap-1 justify-center w-full text-xs group">
+                          <span>DJ</span>
+                          {getSortIndicator('dj')}
                         </button>
                       </th>
                       <th className="px-2 py-2 text-center font-semibold whitespace-nowrap min-w-max">
-                        <button onClick={() => handleSort('levelPelayanan')} className="flex items-center gap-0.5 hover:text-blue-600 justify-center w-full text-xs">
-                          LOS {getSortIndicator('levelPelayanan')}
+                        <button onClick={() => handleSort('levelPelayanan')} className="flex items-center gap-1 justify-center w-full text-xs group">
+                          <span>LOS</span>
+                          {getSortIndicator('levelPelayanan')}
                         </button>
                       </th>
                       <th className="px-2 py-2 text-center font-semibold whitespace-nowrap min-w-max">Aksi</th>
