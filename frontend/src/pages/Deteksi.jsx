@@ -26,86 +26,49 @@ export default function Deteksi() {
   const [processingFrame, setProcessingFrame] = useState(null); // YOLO processing frame
   const [rows, setRows] = useState([]);
   const fileInputRef = useRef(null);
-  const [savingRow, setSavingRow] = useState(null); // Row being saved (for modal)
-  const [manualCount, setManualCount] = useState(""); // Manual vehicle count for MAPE
-
-  // ================= CALCULATE MAPE =================
-  const calculateMAPE = (actualValue, forecastValue) => {
-    if (!actualValue || actualValue <= 0) return null;
-    const error = Math.abs(actualValue - forecastValue);
-    return parseFloat(((error / actualValue) * 100).toFixed(2));
-  };
-
-  const getMAPERating = (mapeValue) => {
-    if (mapeValue === null || mapeValue === undefined) {
-      return { rating: "N/A", color: "gray" };
-    }
-    if (mapeValue < 10) return { rating: "Sangat Baik ✨", color: "green" };
-    if (mapeValue < 20) return { rating: "Baik ✓", color: "blue" };
-    if (mapeValue < 50) return { rating: "Cukup ⚠", color: "yellow" };
-    return { rating: "Buruk ✗", color: "red" };
-  };
 
   // ================= SAVE TO DATABASE =================
   const handleSaveToDb = async (row) => {
-    setSavingRow(row);
-    setManualCount("");
-  };
-
-  const confirmSave = async () => {
-    if (!savingRow) return;
-
     try {
       const token = localStorage.getItem("accessToken");
-      const forecastVehicles = savingRow.vehicles;
-      const actualVehicles = manualCount ? parseInt(manualCount) : null;
-      const mape = actualVehicles ? calculateMAPE(actualVehicles, forecastVehicles) : null;
-
       const saveData = {
-        video_url: savingRow.cloudinaryUrl || `https://via-mock/${savingRow.name}.mp4`,
-        output_video_url: savingRow.outputVideoUrl,
-        video_name: savingRow.name,
-        total_vehicles: forecastVehicles,
-        avg_confidence: parseFloat(savingRow.avgConfidence),
-        duration: savingRow.duration,
-        frames: savingRow.frames,
-        detections: savingRow.detections,
+        video_url: row.cloudinaryUrl || `https://via-mock/${row.name}.mp4`,
+        output_video_url: row.outputVideoUrl,
+        video_name: row.name,
+        total_vehicles: row.vehicles,
+        avg_confidence: parseFloat(row.avgConfidence),
+        duration: row.duration,
+        frames: row.frames,
+        detections: row.detections,
         // NEW: Per-lane vehicle breakdown
         summary: {
-          totalVehicles: savingRow.summary?.totalVehicles || forecastVehicles || 0,
-          carCount: savingRow.summary?.carCount || 0,
-          busCount: savingRow.summary?.busCount || 0,
-          truckCount: savingRow.summary?.truckCount || 0,
-          leftLaneCount: savingRow.summary?.leftLaneCount || 0,
-          rightLaneCount: savingRow.summary?.rightLaneCount || 0,
-          leftLane: savingRow.summary?.leftLane || { mobil: 0, bus: 0, truk: 0 },
-          rightLane: savingRow.summary?.rightLane || { mobil: 0, bus: 0, truk: 0 },
-        },
-        // NEW: Accuracy metrics (MAPE)
-        accuracy: {
-          actualVehicles,
-          forecastVehicles,
-          mapeValue: mape
+          totalVehicles: row.summary?.totalVehicles || row.vehicles || 0,
+          carCount: row.summary?.carCount || 0,
+          busCount: row.summary?.busCount || 0,
+          truckCount: row.summary?.truckCount || 0,
+          leftLaneCount: row.summary?.leftLaneCount || 0,
+          rightLaneCount: row.summary?.rightLaneCount || 0,
+          // NEW: Per-lane vehicle types
+          leftLane: row.summary?.leftLane || { mobil: 0, bus: 0, truk: 0 },
+          rightLane: row.summary?.rightLane || { mobil: 0, bus: 0, truk: 0 },
         }
       };
 
       console.log("💾 Saving to backend:", saveData);
-      const res = await axios.post(
-        `${API_URL}/api/detect`,
-        saveData,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json"
-          },
-          timeout: 10000
+        const res = await axios.post(
+          `${API_URL}/api/detect`,
+          saveData,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json"
+            },
+            timeout: 10000
         }
       );
 
       console.log("✅ Data saved:", res.data);
       alert("✅ Data tersimpan! Bisa digunakan di halaman Perhitungan");
-      setSavingRow(null);
-      setManualCount("");
     } catch (err) {
       console.error("❌ Save error:", err.response?.data || err.message);
       alert(`Gagal menyimpan: ${err.response?.data?.message || err.message}`);
@@ -119,21 +82,10 @@ export default function Deteksi() {
     { key: "vehicles", label: "Total Kendaraan" },
     {
       key: "avgConfidence",
-      label: "MAPE Akurasi",
-      render: (v, row) => {
-        const mape = row.mape;
-        const rating = getMAPERating(mape);
-        if (mape === null) {
-          return `<span class="text-gray-500 text-xs">-</span>`;
-        }
-        const colorClass = {
-          green: "bg-green-100 text-green-800",
-          blue: "bg-blue-100 text-blue-800",
-          yellow: "bg-yellow-100 text-yellow-800",
-          red: "bg-red-100 text-red-800",
-          gray: "bg-gray-100 text-gray-800"
-        }[rating.color];
-        return `<div class="flex flex-col gap-1"><span class="px-2 py-1 rounded-full text-xs font-semibold ${colorClass}">${mape}% - ${rating.rating}</span></div>`;
+      label: "Avg Confidence",
+      render: (v) => {
+        const num = parseFloat(v) * 100;
+        return `${num.toFixed(0)}%`;
       },
     },
     {
@@ -459,7 +411,6 @@ export default function Deteksi() {
           }
         ],
         status: "Selesai",
-        mape: null, // Will be calculated after user inputs manual count
         summary: {
           totalVehicles: correctTotalVehicles,  // Use corrected total from lane counts!
           carCount,
@@ -546,7 +497,7 @@ export default function Deteksi() {
             headers: { 
               Authorization: `Bearer ${token}`
             },
-            timeout: 600000  // ← INCREASED: 10 minutes per request (large 360MB responses need time)
+            timeout: 900000  // ⭐ 15 minutes per request (for very large 360MB+ responses and long-running FFmpeg)
           }
         );
 
@@ -577,19 +528,41 @@ export default function Deteksi() {
         await new Promise(r => setTimeout(r, pollingInterval));
 
       } catch (err) {
-        consecutiveErrors++;
-        const errorMsg = err.response?.status === 404 
+        const statusCode = err.response?.status;
+        const is524Error = statusCode === 524;
+        const is504Error = statusCode === 504;
+        const isGatewayError = is524Error || is504Error;
+        
+        // ⭐ 524/504 errors are GATEWAY TIMEOUTS during long operations (like FFmpeg)
+        // These are NOT job failures - backend might still be processing
+        // DO NOT count gateway errors as heavily as other errors
+        if (!isGatewayError) {
+          consecutiveErrors++;
+        }
+
+        const errorMsg = statusCode === 404 
           ? 'Job not found (404)'
+          : statusCode === 524
+          ? 'Gateway Timeout (524) - Backend processing, patience...'
+          : statusCode === 504
+          ? 'Gateway Timeout (504) - Backend processing, patience...'
           : err.code === 'ECONNABORTED'
           ? 'Request timeout'
           : err.message;
 
         // Log every error for debugging
-        console.warn(
-          `⚠️ Poll attempt ${attempt + 1} failed (${consecutiveErrors}/${maxConsecutiveErrors}): ${errorMsg}`
-        );
+        if (isGatewayError) {
+          console.warn(
+            `⚠️ Poll attempt ${attempt + 1}: ${errorMsg} [Attempt ${attempt + 1}/${maxAttempts}] - Server still processing`
+          );
+        } else {
+          console.warn(
+            `⚠️ Poll attempt ${attempt + 1} failed (${consecutiveErrors}/${maxConsecutiveErrors}): ${errorMsg}`
+          );
+        }
 
-        // Give up after too many consecutive errors
+        // Give up after too many consecutive NON-GATEWAY errors
+        // Gateway errors (524/504) don't count against the error limit - they just mean backend is busy
         if (consecutiveErrors >= maxConsecutiveErrors) {
           console.error(
             `🔴 Too many consecutive polling errors (${consecutiveErrors}). `
@@ -598,10 +571,20 @@ export default function Deteksi() {
           throw new Error(`Polling failed: ${consecutiveErrors} consecutive errors - ${errorMsg}`);
         }
 
-        // ⭐ EXPONENTIAL BACKOFF: Wait longer after errors
-        // 1st error: 2s, 2nd: 3s, 3rd: 4s, etc (up to 30s max)
-        const backoffDelay = Math.min(1000 + (consecutiveErrors * 1000), 30000);
-        console.log(`  ⏳ Retrying in ${backoffDelay}ms...`);
+        // ⭐ DIFFERENT BACKOFF FOR 524/504: Much longer wait (5-60 seconds)
+        // These errors mean backend is processing (FFmpeg, etc), so we need patience
+        // Regular errors get 1-30s backoff, gateway errors get 5-60s backoff
+        let backoffDelay;
+        if (isGatewayError) {
+          // For gateway errors, use MUCH longer backoff: 5s, 10s, 15s, ..., up to 60s
+          backoffDelay = Math.min(5000 + (Math.floor(attempt / 50) * 5000), 60000);
+          console.log(`  ⏳ [GATEWAY] Retrying in ${backoffDelay}ms (backend is processing, not an error)...`);
+        } else {
+          // Regular exponential backoff: 1s, 2s, 3s, ..., up to 30s
+          backoffDelay = Math.min(1000 + (consecutiveErrors * 1000), 30000);
+          console.log(`  ⏳ [ERROR] Retrying in ${backoffDelay}ms...`);
+        }
+        
         await new Promise(r => setTimeout(r, backoffDelay));
       }
     }
@@ -1002,76 +985,6 @@ export default function Deteksi() {
           )}
         </div>
       </Card>
-
-      {/* Modal untuk Input Manual Count (untuk MAPE) */}
-      {savingRow && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-8 max-w-md w-full mx-4 shadow-xl">
-            <h2 className="text-xl font-bold mb-4 text-gray-800">📊 Input Manual Count</h2>
-            <p className="text-sm text-gray-600 mb-6">
-              Untuk menghitung akurasi MAPE, masukkan jumlah kendaraan hasil observasi manual pada video ini.
-            </p>
-            
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                🔍 Jumlah Kendaraan (Observasi Manual)
-              </label>
-              <input
-                type="number"
-                min="0"
-                value={manualCount}
-                onChange={(e) => setManualCount(e.target.value)}
-                placeholder="Contoh: 247"
-                className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:border-blue-500"
-                autoFocus
-              />
-              <p className="text-xs text-gray-500 mt-2">
-                Masukkan hasil hitung manual dari video. Bisa juga skip jika belum tahu.
-              </p>
-            </div>
-
-            {manualCount && savingRow.vehicles && (
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
-                <p className="text-xs font-semibold text-blue-900 mb-2">📈 Preview MAPE:</p>
-                {(() => {
-                  const mape = calculateMAPE(parseInt(manualCount), savingRow.vehicles);
-                  const rating = getMAPERating(mape);
-                  return (
-                    <>
-                      <div className="text-sm">
-                        <p className="text-gray-700"><strong>Manual:</strong> {manualCount}</p>
-                        <p className="text-gray-700"><strong>YOLO:</strong> {savingRow.vehicles}</p>
-                        <p className="text-gray-700"><strong>MAPE:</strong> {mape}%</p>
-                        <p className={`font-semibold text-${rating.color}-600 mt-1`}>
-                          {rating.rating}
-                        </p>
-                      </div>
-                    </>
-                  );
-                })()}
-              </div>
-            )}
-
-            <div className="flex gap-3">
-              <button
-                onClick={confirmSave}
-                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded-lg transition-colors"
-              >
-                ✅ Simpan
-              </button>
-              <button
-                onClick={() => {
-                  setSavingRow(null);
-                  setManualCount("");
-                }}
-                className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 font-semibold py-2 rounded-lg transition-colors"
-              >
-                ❌ Batal
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
