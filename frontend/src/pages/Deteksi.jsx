@@ -25,57 +25,7 @@ export default function Deteksi() {
   const [message, setMessage] = useState(""); // Status message
   const [processingFrame, setProcessingFrame] = useState(null); // YOLO processing frame
   const [rows, setRows] = useState([]);
-  const [currentJobId, setCurrentJobId] = useState(null); // Track current job for cancellation
-  const [isCancelling, setIsCancelling] = useState(false); // Show cancel in progress
   const fileInputRef = useRef(null);
-  const abortControllerRef = useRef(null); // For aborting requests
-
-  // ================= CANCEL PROCESSING =================
-  const handleCancelProcessing = async () => {
-    if (!currentJobId) {
-      console.warn("❌ No job ID to cancel");
-      return;
-    }
-    
-    setIsCancelling(true);
-    console.log(`🛑 Cancelling job ${currentJobId}...`);
-    
-    try {
-      const token = localStorage.getItem("accessToken");
-      console.log("📝 Token:", token ? `${token.substring(0, 20)}...` : "MISSING");
-      
-      // Use YOLO_API for cancel endpoint (not API_URL)
-      const cancelUrl = `${YOLO_API}/cancel/${currentJobId}`;
-      console.log("📡 Cancel endpoint:", cancelUrl);
-      
-      const res = await axios.post(
-        cancelUrl,
-        {},
-        {
-          headers: { Authorization: `Bearer ${token}` },
-          timeout: 5000
-        }
-      );
-      
-      console.log(`✅ Job ${currentJobId} cancelled successfully:`, res.data);
-      setLoading(false);
-      setCurrentJobId(null);
-      setMessage("❌ Processing dibatalkan oleh user");
-      setProgress(0);
-    } catch (err) {
-      console.error(`❌ Error cancelling job:`, err.message);
-      console.error("   Status:", err.response?.status);
-      console.error("   Data:", err.response?.data);
-      console.error("   URL:", err.config?.url);
-      
-      // Even if cancel fails, stop the frontend polling
-      setLoading(false);
-      setCurrentJobId(null);
-      setMessage("❌ Pembatalan gagal (tetap berhenti)");
-    } finally {
-      setIsCancelling(false);
-    }
-  };
 
   // ================= SAVE TO DATABASE =================
   const handleSaveToDb = async (row) => {
@@ -302,18 +252,8 @@ export default function Deteksi() {
       setMessage("⏳ Processing with YOLO (may take several minutes)...");
       console.log(`📊 Job ID: ${jobId}, polling for result...`);
       
-      // Store job ID for cancellation
-      setCurrentJobId(jobId);
-      
       // Poll job progress directly (SSE not supported by some browsers)
       const jobResult = await pollJobDirect(jobId, token);
-      
-      // Clear job ID after polling completes
-      setCurrentJobId(null);
-      
-      if (jobResult.status === 'not_found') {
-        throw new Error(`Job ${jobId} not found on backend - processing may have been cancelled or lost`);
-      }
       
       if (jobResult.status === 'failed') {
         throw new Error(`YOLO job failed: ${jobResult.error}`);
@@ -493,9 +433,6 @@ export default function Deteksi() {
       };
       
     } catch (err) {
-      // Clear job ID on error to stop polling
-      setCurrentJobId(null);
-      
       console.error("❌ YOLO processing failed:");
       console.error("   Message:", err.message);
       console.error("   Status:", err.response?.status);
@@ -547,7 +484,7 @@ export default function Deteksi() {
     const maxAttempts = 7200; // 2 hours
     let consecutiveErrors = 0;
     const maxConsecutiveErrors = 10; // Give up after 10 consecutive errors
-    let pollingInterval = 500; // ⭐ START FAST: 500ms (was 1000ms) - catch early progress updates
+    let pollingInterval = 1000; // Start at 1 second
 
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
       try {
@@ -581,17 +518,10 @@ export default function Deteksi() {
           return job;
         }
 
-        // ⭐ ADAPTIVE POLLING: Increase interval over time
-        // First 30 seconds: 500ms (catch early updates)
-        // Next 4 minutes: 1-2s (normal speed)
-        // After 5 min: 2-10s (reduce load)
+        // ⭐ ADAPTIVE POLLING: Increase interval for long-running jobs
+        // Start at 1s, gradually increase to 10s to reduce load on server/ngrok
         const elapsedSeconds = attempt * (pollingInterval / 1000);
-        if (elapsedSeconds < 30) {
-          // Keep at 500ms
-          pollingInterval = 500;
-        } else if (elapsedSeconds < 300) { // After 30s, increase gradually
-          pollingInterval = Math.min(500 + (attempt - 60) * 50, 2000); // Increase by 50ms per poll, max 2s
-        } else if (elapsedSeconds > 300 && pollingInterval < 10000) { // After 5 min
+        if (elapsedSeconds > 300 && pollingInterval < 10000) { // After 5 min
           pollingInterval = Math.min(pollingInterval + 500, 10000); // Increase by 0.5s, max 10s
         }
 
@@ -599,16 +529,9 @@ export default function Deteksi() {
 
       } catch (err) {
         const statusCode = err.response?.status;
-        const is404Error = statusCode === 404;
         const is524Error = statusCode === 524;
         const is504Error = statusCode === 504;
         const isGatewayError = is524Error || is504Error;
-        
-        // ⭐ 404 JOB NOT FOUND: Stop polling immediately, job doesn't exist
-        if (is404Error) {
-          console.warn(`⚠️ Job ${jobId} not found (404) - stopped polling`);
-          return { status: 'not_found', progress: 0, message: 'Job not found' };
-        }
         
         // ⭐ 524/504 errors are GATEWAY TIMEOUTS during long operations (like FFmpeg)
         // These are NOT job failures - backend might still be processing
@@ -617,7 +540,9 @@ export default function Deteksi() {
           consecutiveErrors++;
         }
 
-        const errorMsg = statusCode === 524
+        const errorMsg = statusCode === 404 
+          ? 'Job not found (404)'
+          : statusCode === 524
           ? 'Gateway Timeout (524) - Backend processing, patience...'
           : statusCode === 504
           ? 'Gateway Timeout (504) - Backend processing, patience...'
@@ -825,48 +750,17 @@ export default function Deteksi() {
 
       {/* Progress */}
       {loading && (
-        <div className="max-w-2xl mx-auto bg-white border border-blue-200 rounded-lg p-6 shadow-lg">
-          {/* Header with title and cancel button */}
-          <div className="flex justify-between items-center mb-4">
-            <p className="text-center text-sm text-gray-600 font-semibold flex-1">
-              ⏳ {message || "Processing..."}
-            </p>
-            <button
-              onClick={handleCancelProcessing}
-              disabled={isCancelling}
-              className="ml-4 bg-red-500 hover:bg-red-600 disabled:bg-gray-400 text-white rounded-full p-2 transition-colors duration-200"
-              title="Batalkan processing"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-          
-          {/* Progress bar */}
-          <div className="w-full bg-gray-200 rounded-full h-3">
+        <div className="max-w-md mx-auto bg-white border border-blue-200 rounded-lg p-6">
+          <p className="text-center text-sm text-gray-600 mb-3 font-semibold">
+            ⏳ {message || "Processing..."}
+          </p>
+          <div className="w-full bg-gray-200 rounded-full h-2">
             <div
-              className="bg-blue-600 h-3 rounded-full transition-all duration-300"
+              className="bg-blue-600 h-2 rounded-full transition-all"
               style={{ width: `${progress}%` }}
             />
           </div>
-          
-          {/* Progress text - shows more details */}
-          <p className="text-center text-sm text-blue-600 mt-3 font-mono">
-            {progress}% {progress === 100 && "✅"}  {progress < 50 && "[Upload/Start]"}  {progress >= 50 && progress < 99 && "[Processing...]"}  {progress >= 99 && "[Finishing...]"}  
-          </p>
-          
-          {/* Show processing frame if available */}
-          {processingFrame && (
-            <div className="mt-3 max-h-32">
-              <img 
-                src={processingFrame} 
-                alt="Processing frame" 
-                className="w-full max-h-32 object-cover rounded"
-                onError={() => setProcessingFrame(null)}
-              />
-            </div>
-          )}
+          <p className="text-center text-xs text-gray-500 mt-2">{progress}%</p>
         </div>
       )}
 
