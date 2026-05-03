@@ -32,17 +32,24 @@ export default function Deteksi() {
 
   // ================= CANCEL PROCESSING =================
   const handleCancelProcessing = async () => {
-    if (!currentJobId) return;
+    if (!currentJobId) {
+      console.warn("❌ No job ID to cancel");
+      return;
+    }
     
     setIsCancelling(true);
     console.log(`🛑 Cancelling job ${currentJobId}...`);
     
     try {
       const token = localStorage.getItem("accessToken");
+      console.log("📝 Token:", token ? `${token.substring(0, 20)}...` : "MISSING");
       
-      // Call backend to cancel the job
-      await axios.post(
-        `${API_URL}/api/detect/cancel/${currentJobId}`,
+      // Use YOLO_API for cancel endpoint (not API_URL)
+      const cancelUrl = `${YOLO_API}/cancel/${currentJobId}`;
+      console.log("📡 Cancel endpoint:", cancelUrl);
+      
+      const res = await axios.post(
+        cancelUrl,
         {},
         {
           headers: { Authorization: `Bearer ${token}` },
@@ -50,16 +57,21 @@ export default function Deteksi() {
         }
       );
       
-      console.log(`✅ Job ${currentJobId} cancelled successfully`);
+      console.log(`✅ Job ${currentJobId} cancelled successfully:`, res.data);
       setLoading(false);
       setCurrentJobId(null);
       setMessage("❌ Processing dibatalkan oleh user");
       setProgress(0);
     } catch (err) {
-      console.error(`⚠️ Error cancelling job:`, err.message);
+      console.error(`❌ Error cancelling job:`, err.message);
+      console.error("   Status:", err.response?.status);
+      console.error("   Data:", err.response?.data);
+      console.error("   URL:", err.config?.url);
+      
       // Even if cancel fails, stop the frontend polling
       setLoading(false);
       setCurrentJobId(null);
+      setMessage("❌ Pembatalan gagal (tetap berhenti)");
     } finally {
       setIsCancelling(false);
     }
