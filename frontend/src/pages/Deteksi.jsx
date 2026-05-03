@@ -25,7 +25,45 @@ export default function Deteksi() {
   const [message, setMessage] = useState(""); // Status message
   const [processingFrame, setProcessingFrame] = useState(null); // YOLO processing frame
   const [rows, setRows] = useState([]);
+  const [currentJobId, setCurrentJobId] = useState(null); // Track current job for cancellation
+  const [isCancelling, setIsCancelling] = useState(false); // Show cancel in progress
   const fileInputRef = useRef(null);
+  const abortControllerRef = useRef(null); // For aborting requests
+
+  // ================= CANCEL PROCESSING =================
+  const handleCancelProcessing = async () => {
+    if (!currentJobId) return;
+    
+    setIsCancelling(true);
+    console.log(`🛑 Cancelling job ${currentJobId}...`);
+    
+    try {
+      const token = localStorage.getItem("accessToken");
+      
+      // Call backend to cancel the job
+      await axios.post(
+        `${API_URL}/api/detect/cancel/${currentJobId}`,
+        {},
+        {
+          headers: { Authorization: `Bearer ${token}` },
+          timeout: 5000
+        }
+      );
+      
+      console.log(`✅ Job ${currentJobId} cancelled successfully`);
+      setLoading(false);
+      setCurrentJobId(null);
+      setMessage("❌ Processing dibatalkan oleh user");
+      setProgress(0);
+    } catch (err) {
+      console.error(`⚠️ Error cancelling job:`, err.message);
+      // Even if cancel fails, stop the frontend polling
+      setLoading(false);
+      setCurrentJobId(null);
+    } finally {
+      setIsCancelling(false);
+    }
+  };
 
   // ================= SAVE TO DATABASE =================
   const handleSaveToDb = async (row) => {
@@ -251,6 +289,9 @@ export default function Deteksi() {
       setProgress(0);
       setMessage("⏳ Processing with YOLO (may take several minutes)...");
       console.log(`📊 Job ID: ${jobId}, polling for result...`);
+      
+      // Store job ID for cancellation
+      setCurrentJobId(jobId);
       
       // Poll job progress directly (SSE not supported by some browsers)
       const jobResult = await pollJobDirect(jobId, token);
@@ -750,17 +791,48 @@ export default function Deteksi() {
 
       {/* Progress */}
       {loading && (
-        <div className="max-w-md mx-auto bg-white border border-blue-200 rounded-lg p-6">
-          <p className="text-center text-sm text-gray-600 mb-3 font-semibold">
-            ⏳ {message || "Processing..."}
-          </p>
-          <div className="w-full bg-gray-200 rounded-full h-2">
+        <div className="max-w-2xl mx-auto bg-white border border-blue-200 rounded-lg p-6 shadow-lg">
+          {/* Header with title and cancel button */}
+          <div className="flex justify-between items-center mb-4">
+            <p className="text-center text-sm text-gray-600 font-semibold flex-1">
+              ⏳ {message || "Processing..."}
+            </p>
+            <button
+              onClick={handleCancelProcessing}
+              disabled={isCancelling}
+              className="ml-4 bg-red-500 hover:bg-red-600 disabled:bg-gray-400 text-white rounded-full p-2 transition-colors duration-200"
+              title="Batalkan processing"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+          
+          {/* Progress bar */}
+          <div className="w-full bg-gray-200 rounded-full h-3">
             <div
-              className="bg-blue-600 h-2 rounded-full transition-all"
+              className="bg-blue-600 h-3 rounded-full transition-all duration-300"
               style={{ width: `${progress}%` }}
             />
           </div>
-          <p className="text-center text-xs text-gray-500 mt-2">{progress}%</p>
+          
+          {/* Progress text - shows more details */}
+          <p className="text-center text-sm text-blue-600 mt-3 font-mono">
+            {progress}% {progress === 100 && "✅"}  {progress < 50 && "[Upload/Start]"}  {progress >= 50 && progress < 99 && "[Processing...]"}  {progress >= 99 && "[Finishing...]"}  
+          </p>
+          
+          {/* Show processing frame if available */}
+          {processingFrame && (
+            <div className="mt-3 max-h-32">
+              <img 
+                src={processingFrame} 
+                alt="Processing frame" 
+                className="w-full max-h-32 object-cover rounded"
+                onError={() => setProcessingFrame(null)}
+              />
+            </div>
+          )}
         </div>
       )}
 
