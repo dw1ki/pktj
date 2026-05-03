@@ -308,6 +308,13 @@ export default function Deteksi() {
       // Poll job progress directly (SSE not supported by some browsers)
       const jobResult = await pollJobDirect(jobId, token);
       
+      // Clear job ID after polling completes
+      setCurrentJobId(null);
+      
+      if (jobResult.status === 'not_found') {
+        throw new Error(`Job ${jobId} not found on backend - processing may have been cancelled or lost`);
+      }
+      
       if (jobResult.status === 'failed') {
         throw new Error(`YOLO job failed: ${jobResult.error}`);
       }
@@ -486,6 +493,9 @@ export default function Deteksi() {
       };
       
     } catch (err) {
+      // Clear job ID on error to stop polling
+      setCurrentJobId(null);
+      
       console.error("❌ YOLO processing failed:");
       console.error("   Message:", err.message);
       console.error("   Status:", err.response?.status);
@@ -537,7 +547,7 @@ export default function Deteksi() {
     const maxAttempts = 7200; // 2 hours
     let consecutiveErrors = 0;
     const maxConsecutiveErrors = 10; // Give up after 10 consecutive errors
-    let pollingInterval = 1000; // Start at 1 second
+    let pollingInterval = 500; // ⭐ START FAST: 500ms (was 1000ms) - catch early progress updates
 
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
       try {
@@ -571,10 +581,17 @@ export default function Deteksi() {
           return job;
         }
 
-        // ⭐ ADAPTIVE POLLING: Increase interval for long-running jobs
-        // Start at 1s, gradually increase to 10s to reduce load on server/ngrok
+        // ⭐ ADAPTIVE POLLING: Increase interval over time
+        // First 30 seconds: 500ms (catch early updates)
+        // Next 4 minutes: 1-2s (normal speed)
+        // After 5 min: 2-10s (reduce load)
         const elapsedSeconds = attempt * (pollingInterval / 1000);
-        if (elapsedSeconds > 300 && pollingInterval < 10000) { // After 5 min
+        if (elapsedSeconds < 30) {
+          // Keep at 500ms
+          pollingInterval = 500;
+        } else if (elapsedSeconds < 300) { // After 30s, increase gradually
+          pollingInterval = Math.min(500 + (attempt - 60) * 50, 2000); // Increase by 50ms per poll, max 2s
+        } else if (elapsedSeconds > 300 && pollingInterval < 10000) { // After 5 min
           pollingInterval = Math.min(pollingInterval + 500, 10000); // Increase by 0.5s, max 10s
         }
 
@@ -582,9 +599,16 @@ export default function Deteksi() {
 
       } catch (err) {
         const statusCode = err.response?.status;
+        const is404Error = statusCode === 404;
         const is524Error = statusCode === 524;
         const is504Error = statusCode === 504;
         const isGatewayError = is524Error || is504Error;
+        
+        // ⭐ 404 JOB NOT FOUND: Stop polling immediately, job doesn't exist
+        if (is404Error) {
+          console.warn(`⚠️ Job ${jobId} not found (404) - stopped polling`);
+          return { status: 'not_found', progress: 0, message: 'Job not found' };
+        }
         
         // ⭐ 524/504 errors are GATEWAY TIMEOUTS during long operations (like FFmpeg)
         // These are NOT job failures - backend might still be processing
@@ -593,9 +617,7 @@ export default function Deteksi() {
           consecutiveErrors++;
         }
 
-        const errorMsg = statusCode === 404 
-          ? 'Job not found (404)'
-          : statusCode === 524
+        const errorMsg = statusCode === 524
           ? 'Gateway Timeout (524) - Backend processing, patience...'
           : statusCode === 504
           ? 'Gateway Timeout (504) - Backend processing, patience...'
