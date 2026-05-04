@@ -25,6 +25,8 @@ export default function Deteksi() {
   const [message, setMessage] = useState(""); // Status message
   const [processingFrame, setProcessingFrame] = useState(null); // YOLO processing frame
   const [rows, setRows] = useState([]);
+  const [currentJobId, setCurrentJobId] = useState(null); // ⭐ Track current job for cancellation
+  const [isCancelling, setIsCancelling] = useState(false); // ⭐ Track cancel state
   const fileInputRef = useRef(null);
 
   // ================= SAVE TO DATABASE =================
@@ -237,6 +239,7 @@ export default function Deteksi() {
           }
         );
         jobId = processRes.data.data?.id || processRes.data.jobId;
+        setCurrentJobId(jobId); // ⭐ Track current job for cancel button
         console.log("✅ Processing started, jobId =", jobId);
       } catch (jobErr) {
         console.error("❌ Failed to start processing:", jobErr.message);
@@ -481,28 +484,29 @@ export default function Deteksi() {
    */
   const pollJobDirect = async (jobId, token) => {
     let lastProgress = 0;
-    const maxAttempts = 7200; // 2 hours
-    let consecutiveErrors = 0;
-    const maxConsecutiveErrors = 10; // Give up after 10 consecutive errors
+    let lastSuccessfulJob = null;
+    const maxAttempts = 14400; // 4 hours (doubled from 2 hours to handle very long processing + network issues)
+    let consecutiveNonGatewayErrors = 0;
+    const maxConsecutiveErrors = 15; // Higher tolerance
     let pollingInterval = 1000; // Start at 1 second
+    let gatewayErrorCount = 0; // Track 524/504 errors separately
 
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
       try {
-        // Note: Connection: keep-alive is managed by browser/server automatically
-        // Browsers refuse to set these headers directly via JavaScript (security policy)
-        // Backend (server.js) sets socket.setKeepAlive(true) at transport level
         const res = await axios.get(
           `${API_URL}/api/detect/${jobId}/status`,
           {
             headers: { 
               Authorization: `Bearer ${token}`
             },
-            timeout: 900000  // ⭐ 15 minutes per request (for very large 360MB+ responses and long-running FFmpeg)
+            timeout: 900000  // 15 minutes per request
           }
         );
 
         const job = res.data;
-        consecutiveErrors = 0; // Reset error counter on success
+        lastSuccessfulJob = job; // Store last successful response
+        consecutiveNonGatewayErrors = 0; // Reset error counter on success
+        gatewayErrorCount = 0; // Reset gateway error counter
 
         // Update progress
         if (job.progress !== lastProgress) {
@@ -519,10 +523,9 @@ export default function Deteksi() {
         }
 
         // ⭐ ADAPTIVE POLLING: Increase interval for long-running jobs
-        // Start at 1s, gradually increase to 10s to reduce load on server/ngrok
         const elapsedSeconds = attempt * (pollingInterval / 1000);
-        if (elapsedSeconds > 300 && pollingInterval < 10000) { // After 5 min
-          pollingInterval = Math.min(pollingInterval + 500, 10000); // Increase by 0.5s, max 10s
+        if (elapsedSeconds > 300 && pollingInterval < 10000) {
+          pollingInterval = Math.min(pollingInterval + 500, 10000);
         }
 
         await new Promise(r => setTimeout(r, pollingInterval));
@@ -533,63 +536,62 @@ export default function Deteksi() {
         const is504Error = statusCode === 504;
         const isGatewayError = is524Error || is504Error;
         
-        // ⭐ 524/504 errors are GATEWAY TIMEOUTS during long operations (like FFmpeg)
-        // These are NOT job failures - backend might still be processing
-        // DO NOT count gateway errors as heavily as other errors
-        if (!isGatewayError) {
-          consecutiveErrors++;
+        // ⭐ FOR GATEWAY ERRORS (524/504): Just retry without counting as errors
+        if (isGatewayError) {
+          gatewayErrorCount++;
+          // Show last known progress while we retry
+          if (lastSuccessfulJob && lastSuccessfulJob.progress > 0) {
+            setProgress(lastSuccessfulJob.progress);
+            setMessage(`⏳ ${lastSuccessfulJob.message || 'Still processing...'} (retry ${gatewayErrorCount})`);
+            console.log(`📊 Poll ${attempt + 1}: [GATEWAY TIMEOUT ${gatewayErrorCount}x] Last known: ${lastSuccessfulJob.progress}% - Retrying...`);
+          }
+          
+          // Much longer backoff for gateway errors (30-120 seconds)
+          const backoffDelay = Math.min(30000 + (gatewayErrorCount * 10000), 120000);
+          console.log(`  ⏳ [524/504] Retrying in ${(backoffDelay/1000).toFixed(0)}s (backend is processing)...`);
+          await new Promise(r => setTimeout(r, backoffDelay));
+          continue; // ⭐ IMPORTANT: Skip to next attempt without counting this as an error
         }
+
+        // ⭐ FOR REAL ERRORS: Count them and maybe give up
+        consecutiveNonGatewayErrors++;
 
         const errorMsg = statusCode === 404 
           ? 'Job not found (404)'
-          : statusCode === 524
-          ? 'Gateway Timeout (524) - Backend processing, patience...'
-          : statusCode === 504
-          ? 'Gateway Timeout (504) - Backend processing, patience...'
           : err.code === 'ECONNABORTED'
           ? 'Request timeout'
           : err.message;
 
-        // Log every error for debugging
-        if (isGatewayError) {
-          console.warn(
-            `⚠️ Poll attempt ${attempt + 1}: ${errorMsg} [Attempt ${attempt + 1}/${maxAttempts}] - Server still processing`
-          );
-        } else {
-          console.warn(
-            `⚠️ Poll attempt ${attempt + 1} failed (${consecutiveErrors}/${maxConsecutiveErrors}): ${errorMsg}`
-          );
+        console.warn(
+          `⚠️ Poll ${attempt + 1}: Error (${consecutiveNonGatewayErrors}/${maxConsecutiveErrors}): ${errorMsg}`
+        );
+
+        // Give up only after many REAL errors (not gateway errors)
+        if (consecutiveNonGatewayErrors >= maxConsecutiveErrors) {
+          // Before giving up, check if we have a last successful job
+          if (lastSuccessfulJob && lastSuccessfulJob.progress > 0) {
+            console.log(`⚠️ Too many errors, but returning last known job state...`);
+            return lastSuccessfulJob;
+          }
+          console.error(`🔴 Too many real errors and no last known job state.`);
+          throw new Error(`Polling failed: ${consecutiveNonGatewayErrors} consecutive errors - ${errorMsg}`);
         }
 
-        // Give up after too many consecutive NON-GATEWAY errors
-        // Gateway errors (524/504) don't count against the error limit - they just mean backend is busy
-        if (consecutiveErrors >= maxConsecutiveErrors) {
-          console.error(
-            `🔴 Too many consecutive polling errors (${consecutiveErrors}). `
-            + `Job might be stuck or backend unreachable.`
-          );
-          throw new Error(`Polling failed: ${consecutiveErrors} consecutive errors - ${errorMsg}`);
-        }
-
-        // ⭐ DIFFERENT BACKOFF FOR 524/504: Much longer wait (5-60 seconds)
-        // These errors mean backend is processing (FFmpeg, etc), so we need patience
-        // Regular errors get 1-30s backoff, gateway errors get 5-60s backoff
-        let backoffDelay;
-        if (isGatewayError) {
-          // For gateway errors, use MUCH longer backoff: 5s, 10s, 15s, ..., up to 60s
-          backoffDelay = Math.min(5000 + (Math.floor(attempt / 50) * 5000), 60000);
-          console.log(`  ⏳ [GATEWAY] Retrying in ${backoffDelay}ms (backend is processing, not an error)...`);
-        } else {
-          // Regular exponential backoff: 1s, 2s, 3s, ..., up to 30s
-          backoffDelay = Math.min(1000 + (consecutiveErrors * 1000), 30000);
-          console.log(`  ⏳ [ERROR] Retrying in ${backoffDelay}ms...`);
-        }
+        // Exponential backoff for real errors: 2s, 4s, 8s, ..., up to 60s
+        const backoffDelay = Math.min(1000 * Math.pow(2, consecutiveNonGatewayErrors), 60000);
+        console.log(`  ⏳ [ERROR] Retrying in ${(backoffDelay/1000).toFixed(0)}s...`);
         
         await new Promise(r => setTimeout(r, backoffDelay));
       }
     }
 
-    throw new Error('Job polling timeout (>2 hours)');
+    // If we've exhausted maxAttempts, return last known job if we have one
+    if (lastSuccessfulJob) {
+      console.log(`⚠️ Polling timeout, but returning last known job state...`);
+      return lastSuccessfulJob;
+    }
+
+    throw new Error('Job polling timeout (>4 hours)');
   };
 
   // ================= HANDLE VIDEO UPLOAD =================
@@ -639,6 +641,7 @@ export default function Deteksi() {
       setTimeout(() => {
         setLoading(false);
         setProgress(0);
+        setCurrentJobId(null); // ⭐ Clear job ID when done
         if (fileInputRef.current) {
           fileInputRef.current.value = "";
         }
@@ -648,6 +651,7 @@ export default function Deteksi() {
       alert(err.message);
       setLoading(false);
       setProgress(0);
+      setCurrentJobId(null); // ⭐ Clear job ID on error too
     }
   };
 
@@ -727,6 +731,47 @@ export default function Deteksi() {
     URL.revokeObjectURL(url);
   };
 
+  // ================= CANCEL YOLO PROCESSING =================
+  const handleCancelJob = async () => {
+    if (!currentJobId) {
+      alert("Tidak ada job yang sedang berjalan");
+      return;
+    }
+
+    if (!window.confirm(`Batalkan proses YOLO Job ID: ${currentJobId}?`)) {
+      return;
+    }
+
+    setIsCancelling(true);
+    try {
+      const token = localStorage.getItem("accessToken");
+      const response = await axios.post(
+        `${YOLO_API}/cancel/${currentJobId}`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          timeout: 30000,
+        }
+      );
+
+      console.log("✅ Job cancellation request sent:", response.data);
+      alert("✅ Proses YOLO dibatalkan");
+      
+      // Reset UI
+      setLoading(false);
+      setProgress(0);
+      setMessage("");
+      setCurrentJobId(null);
+      setIsCancelling(false);
+    } catch (err) {
+      console.error("❌ Cancel error:", err.message);
+      alert(`Gagal membatalkan job: ${err.message}`);
+      setIsCancelling(false);
+    }
+  };
+
   // ================= UI =================
   return (
     <div className="space-y-6">
@@ -750,17 +795,27 @@ export default function Deteksi() {
 
       {/* Progress */}
       {loading && (
-        <div className="max-w-md mx-auto bg-white border border-blue-200 rounded-lg p-6">
-          <p className="text-center text-sm text-gray-600 mb-3 font-semibold">
+        <div className="max-w-md mx-auto bg-white border border-blue-200 rounded-lg p-6 relative">
+          {/* ⭐ Cancel Button (X icon) */}
+          <button
+            onClick={handleCancelJob}
+            disabled={isCancelling}
+            className="absolute top-3 right-3 w-7 h-7 flex items-center justify-center rounded-full hover:bg-red-100 text-red-600 hover:text-red-700 transition-colors"
+            title="Batalkan proses YOLO"
+          >
+            <span className="text-xl font-bold">×</span>
+          </button>
+
+          <p className="text-center text-sm text-gray-600 mb-3 font-semibold pr-6">
             ⏳ {message || "Processing..."}
           </p>
-          <div className="w-full bg-gray-200 rounded-full h-2">
+          <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
             <div
-              className="bg-blue-600 h-2 rounded-full transition-all"
+              className="bg-gradient-to-r from-blue-500 to-blue-600 h-3 rounded-full transition-all"
               style={{ width: `${progress}%` }}
             />
           </div>
-          <p className="text-center text-xs text-gray-500 mt-2">{progress}%</p>
+          <p className="text-center text-xs text-gray-500 mt-2 font-semibold">{progress}% Complete</p>
         </div>
       )}
 
