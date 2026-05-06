@@ -136,17 +136,22 @@ export default function Dashboard() {
           })
         setLineChartData(timelineData)
 
-        // Create volume kendaraan chart data grouped by time
+        // Create volume kendaraan chart data grouped by time and lane (Kiri/Kanan)
         const volumeByTime = {}
         filteredData.forEach(item => {
           const time = item.intervalWaktu || 'Unknown'
           if (!volumeByTime[time]) {
-            volumeByTime[time] = { time, mobil: 0, bus: 0, truk: 0, volume: 0 }
+            volumeByTime[time] = { time, djKiri: 0, djKanan: 0, volumeKiri: 0, volumeKanan: 0 }
           }
-          volumeByTime[time].mobil += item.mobil || 0
-          volumeByTime[time].bus += item.bus || 0
-          volumeByTime[time].truk += item.truk || 0
-          volumeByTime[time].volume += item.volume || 0
+          
+          const lane = item.lajur || 'Kanan'
+          if (lane === 'Kiri') {
+            volumeByTime[time].djKiri = item.dj || 0
+            volumeByTime[time].volumeKiri = item.volume || 0
+          } else {
+            volumeByTime[time].djKanan = item.dj || 0
+            volumeByTime[time].volumeKanan = item.volume || 0
+          }
         })
         const volumeData = Object.values(volumeByTime).sort((a, b) => a.time.localeCompare(b.time))
         setVolumeChartData(volumeData)
@@ -356,33 +361,64 @@ export default function Dashboard() {
                   dataKey="time"
                   label={{ value: 'Data Kendaraan', position: 'bottom', offset: 20, style: { fontSize: '14px', fontWeight: 500 } }}
                 />
+                {/* Left Y-Axis untuk DJ (0-1) */}
                 <YAxis 
-                  label={{ value: 'Jumlah Kendaraan', angle: -90, position: 'insideLeft', offset: -5, style: { fontSize: '14px', fontWeight: 500, textAnchor: 'middle' } }}
+                  yAxisId="left"
+                  domain={[0, 1]}
+                  label={{ value: 'DJ (Derajat Kejenuhan)', angle: -90, position: 'insideLeft', offset: -5, style: { fontSize: '14px', fontWeight: 500, textAnchor: 'middle' } }}
                 />
-                <Tooltip formatter={(value) => typeof value === 'number' ? value.toFixed(0) : value} />
+                {/* Right Y-Axis untuk Volume */}
+                <YAxis 
+                  yAxisId="right"
+                  orientation="right"
+                  label={{ value: 'Volume (smp/jam)', angle: 90, position: 'insideRight', offset: -5, style: { fontSize: '14px', fontWeight: 500, textAnchor: 'middle' } }}
+                />
+                <Tooltip 
+                  formatter={(value, name) => {
+                    if (name.includes('DJ')) {
+                      return [parseFloat(value).toFixed(3), name]
+                    }
+                    return [Math.round(value), name]
+                  }}
+                  labelFormatter={(label) => `Waktu: ${label}`}
+                />
                 <Legend wrapperStyle={{ paddingTop: '50px', display: 'flex', justifyContent: 'center', width: '100%' }} align="center" verticalAlign="bottom" height={36} />
+                {/* DJ Lines (Left axis) */}
                 <Line 
+                  yAxisId="left"
                   type="monotone" 
-                  dataKey="mobil" 
+                  dataKey="djKiri" 
                   stroke="#3b82f6" 
                   dot={{ fill: '#3b82f6', r: 4 }}
-                  name="Mobil"
+                  name="DJ Kiri"
                   strokeWidth={2}
                 />
                 <Line 
+                  yAxisId="left"
                   type="monotone" 
-                  dataKey="bus" 
+                  dataKey="djKanan" 
                   stroke="#10b981" 
                   dot={{ fill: '#10b981', r: 4 }}
-                  name="Bus"
+                  name="DJ Kanan"
+                  strokeWidth={2}
+                />
+                {/* Volume Lines (Right axis) */}
+                <Line 
+                  yAxisId="right"
+                  type="monotone" 
+                  dataKey="volumeKiri" 
+                  stroke="#f59e0b" 
+                  dot={{ fill: '#f59e0b', r: 4 }}
+                  name="Volume Kiri"
                   strokeWidth={2}
                 />
                 <Line 
+                  yAxisId="right"
                   type="monotone" 
-                  dataKey="truk" 
-                  stroke="#f59e0b" 
-                  dot={{ fill: '#f59e0b', r: 4 }}
-                  name="Truk"
+                  dataKey="volumeKanan" 
+                  stroke="#ef4444" 
+                  dot={{ fill: '#ef4444', r: 4 }}
+                  name="Volume Kanan"
                   strokeWidth={2}
                 />
               </LineChart>
