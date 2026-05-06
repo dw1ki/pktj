@@ -46,12 +46,6 @@ export default function Dashboard() {
         const data = await res.json()
         const historyData = data.data || []
 
-        // DEBUG: Log sample data
-        console.log('Raw history data:', historyData)
-        if (historyData.length > 0) {
-          console.log('Sample data item:', historyData[0])
-        }
-
         // Extract unique dates from history data
         const uniqueDates = [...new Set(historyData.map(item => {
           if (item.createdAt) {
@@ -72,11 +66,6 @@ export default function Dashboard() {
             }
             return false
           })
-        }
-
-        // Filter data based on selected road
-        if (selectedRoad && selectedRoad !== '') {
-          filteredData = filteredData.filter(item => item.namaRuas === selectedRoad)
         }
 
         // Set total analysis count
@@ -147,54 +136,24 @@ export default function Dashboard() {
           })
         setLineChartData(timelineData)
 
-        // Create volume kendaraan chart data grouped by time with separate lanes
+        // Create volume kendaraan chart data grouped by time and lane (Kiri/Kanan)
         const volumeByTime = {}
-        let kiriTotal = 0, kananTotal = 0, kiriCount = 0, kananCount = 0
-        
-        filteredData.forEach((item, idx) => {
+        filteredData.forEach(item => {
           const time = item.intervalWaktu || 'Unknown'
-          const lajur = (item.lajur || 'Kiri').trim() // Trim whitespace
-          const dj = parseFloat(item.dj) || 0
-          const volume = parseInt(item.volume) || 0
-          
-          // DEBUG
-          if (idx < 3) console.log(`Item ${idx}:`, { time, lajur, dj, volume })
-          
           if (!volumeByTime[time]) {
-            volumeByTime[time] = { time, djKiri: 0, djKanan: 0, volumeKiri: 0, volumeKanan: 0, kiriCount: 0, kananCount: 0 }
+            volumeByTime[time] = { time, djKiri: 0, djKanan: 0, volumeKiri: 0, volumeKanan: 0 }
           }
           
-          if (lajur === 'Kiri') {
-            volumeByTime[time].djKiri += dj
-            volumeByTime[time].volumeKiri += volume
-            volumeByTime[time].kiriCount += 1
-            kiriTotal += dj
-            kiriCount += 1
-          } else if (lajur === 'Kanan') {
-            volumeByTime[time].djKanan += dj
-            volumeByTime[time].volumeKanan += volume
-            volumeByTime[time].kananCount += 1
-            kananTotal += dj
-            kananCount += 1
+          const lane = item.lajur || 'Kanan'
+          if (lane === 'Kiri') {
+            volumeByTime[time].djKiri = item.dj || 0
+            volumeByTime[time].volumeKiri = item.volume || 0
+          } else {
+            volumeByTime[time].djKanan = item.dj || 0
+            volumeByTime[time].volumeKanan = item.volume || 0
           }
         })
-        
-        console.log('Summary - Kiri total DJ:', kiriTotal, 'count:', kiriCount, 'avg:', kiriCount > 0 ? (kiriTotal/kiriCount).toFixed(3) : 0)
-        console.log('Summary - Kanan total DJ:', kananTotal, 'count:', kananCount, 'avg:', kananCount > 0 ? (kananTotal/kananCount).toFixed(3) : 0)
-        
-        // Average the DJ values
-        const volumeData = Object.values(volumeByTime).map(item => ({
-          time: item.time,
-          djKiri: item.kiriCount > 0 ? parseFloat((item.djKiri / item.kiriCount).toFixed(3)) : 0,
-          djKanan: item.kananCount > 0 ? parseFloat((item.djKanan / item.kananCount).toFixed(3)) : 0,
-          volumeKiri: item.volumeKiri,
-          volumeKanan: item.volumeKanan
-        })).sort((a, b) => a.time.localeCompare(b.time))
-        
-        console.log('Volume by time grouped:', volumeByTime)
-        console.log('Final volume chart data:', volumeData)
-        console.log('Filtered data length:', filteredData.length)
-        
+        const volumeData = Object.values(volumeByTime).sort((a, b) => a.time.localeCompare(b.time))
         setVolumeChartData(volumeData)
       } catch (err) {
         console.error('Error fetching history:', err)
@@ -412,7 +371,7 @@ export default function Dashboard() {
                   dataKey="djKiri" 
                   stroke="#3b82f6" 
                   dot={{ fill: '#3b82f6', r: 4 }}
-                  name="Dj Kiri"
+                  name="DJ Kiri"
                   strokeWidth={2}
                 />
                 <Line 
@@ -420,7 +379,7 @@ export default function Dashboard() {
                   dataKey="djKanan" 
                   stroke="#10b981" 
                   dot={{ fill: '#10b981', r: 4 }}
-                  name="Dj Kanan"
+                  name="DJ Kanan"
                   strokeWidth={2}
                 />
                 <Line 
