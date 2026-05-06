@@ -46,6 +46,12 @@ export default function Dashboard() {
         const data = await res.json()
         const historyData = data.data || []
 
+        // DEBUG: Log sample data
+        console.log('Raw history data:', historyData)
+        if (historyData.length > 0) {
+          console.log('Sample data item:', historyData[0])
+        }
+
         // Extract unique dates from history data
         const uniqueDates = [...new Set(historyData.map(item => {
           if (item.createdAt) {
@@ -165,6 +171,9 @@ export default function Dashboard() {
           volumeKiri: item.volumeKiri,
           volumeKanan: item.volumeKanan
         })).sort((a, b) => a.time.localeCompare(b.time))
+        
+        console.log('Volume by time grouped:', volumeByTime)
+        console.log('Final volume chart data:', volumeData)
         
         setVolumeChartData(volumeData)
       } catch (err) {
