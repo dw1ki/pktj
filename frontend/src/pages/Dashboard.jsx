@@ -136,19 +136,36 @@ export default function Dashboard() {
           })
         setLineChartData(timelineData)
 
-        // Create volume kendaraan chart data grouped by time
+        // Create volume kendaraan chart data grouped by time with separate lanes
         const volumeByTime = {}
         filteredData.forEach(item => {
           const time = item.intervalWaktu || 'Unknown'
+          const lajur = item.lajur || 'Kiri' // Default to Kiri if not specified
+          
           if (!volumeByTime[time]) {
-            volumeByTime[time] = { time, mobil: 0, bus: 0, truk: 0, volume: 0 }
+            volumeByTime[time] = { time, djKiri: 0, djKanan: 0, volumeKiri: 0, volumeKanan: 0, kiriCount: 0, kananCount: 0 }
           }
-          volumeByTime[time].mobil += item.mobil || 0
-          volumeByTime[time].bus += item.bus || 0
-          volumeByTime[time].truk += item.truk || 0
-          volumeByTime[time].volume += item.volume || 0
+          
+          if (lajur === 'Kiri') {
+            volumeByTime[time].djKiri += item.dj || 0
+            volumeByTime[time].volumeKiri += item.volume || 0
+            volumeByTime[time].kiriCount += 1
+          } else if (lajur === 'Kanan') {
+            volumeByTime[time].djKanan += item.dj || 0
+            volumeByTime[time].volumeKanan += item.volume || 0
+            volumeByTime[time].kananCount += 1
+          }
         })
-        const volumeData = Object.values(volumeByTime).sort((a, b) => a.time.localeCompare(b.time))
+        
+        // Average the DJ values
+        const volumeData = Object.values(volumeByTime).map(item => ({
+          time: item.time,
+          djKiri: item.kiriCount > 0 ? parseFloat((item.djKiri / item.kiriCount).toFixed(3)) : 0,
+          djKanan: item.kananCount > 0 ? parseFloat((item.djKanan / item.kananCount).toFixed(3)) : 0,
+          volumeKiri: item.volumeKiri,
+          volumeKanan: item.volumeKanan
+        })).sort((a, b) => a.time.localeCompare(b.time))
+        
         setVolumeChartData(volumeData)
       } catch (err) {
         console.error('Error fetching history:', err)
@@ -363,26 +380,34 @@ export default function Dashboard() {
                 <Legend wrapperStyle={{ paddingTop: '50px', display: 'flex', justifyContent: 'center', width: '100%' }} align="center" verticalAlign="bottom" height={36} />
                 <Line 
                   type="monotone" 
-                  dataKey="mobil" 
+                  dataKey="djKiri" 
                   stroke="#3b82f6" 
                   dot={{ fill: '#3b82f6', r: 4 }}
-                  name="Mobil"
+                  name="Dj Kiri"
                   strokeWidth={2}
                 />
                 <Line 
                   type="monotone" 
-                  dataKey="bus" 
+                  dataKey="djKanan" 
                   stroke="#10b981" 
                   dot={{ fill: '#10b981', r: 4 }}
-                  name="Bus"
+                  name="Dj Kanan"
                   strokeWidth={2}
                 />
                 <Line 
                   type="monotone" 
-                  dataKey="truk" 
+                  dataKey="volumeKiri" 
                   stroke="#f59e0b" 
                   dot={{ fill: '#f59e0b', r: 4 }}
-                  name="Truk"
+                  name="Volume Kiri"
+                  strokeWidth={2}
+                />
+                <Line 
+                  type="monotone" 
+                  dataKey="volumeKanan" 
+                  stroke="#ef4444" 
+                  dot={{ fill: '#ef4444', r: 4 }}
+                  name="Volume Kanan"
                   strokeWidth={2}
                 />
               </LineChart>
