@@ -361,12 +361,31 @@ export default function Dashboard() {
                   dataKey="time"
                   label={{ value: 'Data Kendaraan', position: 'bottom', offset: 20, style: { fontSize: '14px', fontWeight: 500 } }}
                 />
+                {/* Left Y-Axis untuk DJ (0-1) */}
                 <YAxis 
-                  label={{ value: 'Jumlah Kendaraan', angle: -90, position: 'insideLeft', offset: -5, style: { fontSize: '14px', fontWeight: 500, textAnchor: 'middle' } }}
+                  yAxisId="left"
+                  domain={[0, 1]}
+                  label={{ value: 'DJ (Derajat Kejenuhan)', angle: -90, position: 'insideLeft', offset: -5, style: { fontSize: '14px', fontWeight: 500, textAnchor: 'middle' } }}
                 />
-                <Tooltip formatter={(value) => typeof value === 'number' ? value.toFixed(0) : value} />
+                {/* Right Y-Axis untuk Volume */}
+                <YAxis 
+                  yAxisId="right"
+                  orientation="right"
+                  label={{ value: 'Volume (smp/jam)', angle: 90, position: 'insideRight', offset: -5, style: { fontSize: '14px', fontWeight: 500, textAnchor: 'middle' } }}
+                />
+                <Tooltip 
+                  formatter={(value, name) => {
+                    if (name.includes('DJ')) {
+                      return [parseFloat(value).toFixed(3), name]
+                    }
+                    return [Math.round(value), name]
+                  }}
+                  labelFormatter={(label) => `Waktu: ${label}`}
+                />
                 <Legend wrapperStyle={{ paddingTop: '50px', display: 'flex', justifyContent: 'center', width: '100%' }} align="center" verticalAlign="bottom" height={36} />
+                {/* DJ Lines (Left axis) */}
                 <Line 
+                  yAxisId="left"
                   type="monotone" 
                   dataKey="djKiri" 
                   stroke="#3b82f6" 
@@ -375,6 +394,7 @@ export default function Dashboard() {
                   strokeWidth={2}
                 />
                 <Line 
+                  yAxisId="left"
                   type="monotone" 
                   dataKey="djKanan" 
                   stroke="#10b981" 
@@ -382,7 +402,9 @@ export default function Dashboard() {
                   name="DJ Kanan"
                   strokeWidth={2}
                 />
+                {/* Volume Lines (Right axis) */}
                 <Line 
+                  yAxisId="right"
                   type="monotone" 
                   dataKey="volumeKiri" 
                   stroke="#f59e0b" 
@@ -391,6 +413,7 @@ export default function Dashboard() {
                   strokeWidth={2}
                 />
                 <Line 
+                  yAxisId="right"
                   type="monotone" 
                   dataKey="volumeKanan" 
                   stroke="#ef4444" 
