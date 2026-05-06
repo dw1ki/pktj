@@ -74,6 +74,11 @@ export default function Dashboard() {
           })
         }
 
+        // Filter data based on selected road
+        if (selectedRoad && selectedRoad !== '') {
+          filteredData = filteredData.filter(item => item.namaRuas === selectedRoad)
+        }
+
         // Set total analysis count
         setTotalAnalysis(filteredData.length)
 
@@ -144,24 +149,38 @@ export default function Dashboard() {
 
         // Create volume kendaraan chart data grouped by time with separate lanes
         const volumeByTime = {}
-        filteredData.forEach(item => {
+        let kiriTotal = 0, kananTotal = 0, kiriCount = 0, kananCount = 0
+        
+        filteredData.forEach((item, idx) => {
           const time = item.intervalWaktu || 'Unknown'
-          const lajur = item.lajur || 'Kiri' // Default to Kiri if not specified
+          const lajur = (item.lajur || 'Kiri').trim() // Trim whitespace
+          const dj = parseFloat(item.dj) || 0
+          const volume = parseInt(item.volume) || 0
+          
+          // DEBUG
+          if (idx < 3) console.log(`Item ${idx}:`, { time, lajur, dj, volume })
           
           if (!volumeByTime[time]) {
             volumeByTime[time] = { time, djKiri: 0, djKanan: 0, volumeKiri: 0, volumeKanan: 0, kiriCount: 0, kananCount: 0 }
           }
           
           if (lajur === 'Kiri') {
-            volumeByTime[time].djKiri += item.dj || 0
-            volumeByTime[time].volumeKiri += item.volume || 0
+            volumeByTime[time].djKiri += dj
+            volumeByTime[time].volumeKiri += volume
             volumeByTime[time].kiriCount += 1
+            kiriTotal += dj
+            kiriCount += 1
           } else if (lajur === 'Kanan') {
-            volumeByTime[time].djKanan += item.dj || 0
-            volumeByTime[time].volumeKanan += item.volume || 0
+            volumeByTime[time].djKanan += dj
+            volumeByTime[time].volumeKanan += volume
             volumeByTime[time].kananCount += 1
+            kananTotal += dj
+            kananCount += 1
           }
         })
+        
+        console.log('Summary - Kiri total DJ:', kiriTotal, 'count:', kiriCount, 'avg:', kiriCount > 0 ? (kiriTotal/kiriCount).toFixed(3) : 0)
+        console.log('Summary - Kanan total DJ:', kananTotal, 'count:', kananCount, 'avg:', kananCount > 0 ? (kananTotal/kananCount).toFixed(3) : 0)
         
         // Average the DJ values
         const volumeData = Object.values(volumeByTime).map(item => ({
@@ -174,6 +193,7 @@ export default function Dashboard() {
         
         console.log('Volume by time grouped:', volumeByTime)
         console.log('Final volume chart data:', volumeData)
+        console.log('Filtered data length:', filteredData.length)
         
         setVolumeChartData(volumeData)
       } catch (err) {
