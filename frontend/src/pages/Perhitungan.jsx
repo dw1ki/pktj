@@ -15,6 +15,15 @@ const imgPdfIcon = 'assets/pdf.svg'
 
 const API_URL = import.meta.env.VITE_API_URL;
 
+const getTodayDateInput = () => {
+  const today = new Date()
+  const year = today.getFullYear()
+  const month = String(today.getMonth() + 1).padStart(2, '0')
+  const day = String(today.getDate()).padStart(2, '0')
+
+  return `${year}-${month}-${day}`
+}
+
 const losColors = {
   'A': 'bg-purple-100 text-purple-800',
   'B': 'bg-blue-100 text-blue-800',
@@ -42,6 +51,7 @@ export default function Perhitungan() {
     namaRuas: '',
     tipeAlinemen: 'datar',
     tipeJalan: '4/2 D',
+    tanggal: getTodayDateInput(),
     jumlahLajur: '',
     kapasitas: '',
     kecepatan: '',
@@ -238,6 +248,7 @@ export default function Perhitungan() {
       kecepatan: detection.roadParameters?.baseSpeed || '88',
       faktor: detection.roadParameters?.effectiveWidthFactor?.toFixed(2) || '1.00',
       lebar: detection.roadParameters?.laneWidth || '3.5',
+      tanggal: getTodayDateInput(),
       kiri: {
         mobil: vehiclesKiri.mobil || 0,
         bus: vehiclesKiri.bus || 0,
@@ -338,6 +349,7 @@ export default function Perhitungan() {
                 namaRuas: csvData['Nama Ruas'] || 'MBZ',
                 tipeAlinemen: 'datar',
                 tipeJalan: '4/2 D',
+                tanggal: getTodayDateInput(),
                 jumlahLajur: '4',
                 kapasitas: '5000',
                 kecepatan: '88',
@@ -460,6 +472,11 @@ const handleHitungRumusCSV = (autoFormData, durationSeconds) => {
 
     if (!formData.waktuMulai || !formData.waktuSelesai) {
       alert('Waktu interval harus diisi lengkap')
+      return
+    }
+
+    if (!formData.tanggal) {
+      alert('Tanggal analisis harus diisi')
       return
     }
 
@@ -661,7 +678,7 @@ const handleHitungRumusCSV = (autoFormData, durationSeconds) => {
         tipeJalan: formData.tipeJalan,
         intervalWaktu: `${formData.waktuMulai}-${formData.waktuSelesai}`,
         durasi: formData.durasi,
-        tanggal: new Date().toISOString(),
+        tanggal: new Date(`${formData.tanggal}T00:00:00`).toISOString(),
         totalVolume: Math.round(calculation.kiri.volume + calculation.kanan.volume),
         capacity: calculation.capacity,
         djTerberat: calculation.degree,
@@ -716,6 +733,7 @@ const handleHitungRumusCSV = (autoFormData, durationSeconds) => {
           namaRuas: '',
           tipeAlinemen: 'datar',
           tipeJalan: '4/2 D',
+          tanggal: getTodayDateInput(),
           jumlahLajur: '',
           kapasitas: '',
           kecepatan: '88',
@@ -1250,6 +1268,15 @@ const handleHitungRumusCSV = (autoFormData, durationSeconds) => {
                           disabled
                         />
                       </div>
+                    </div>
+                    <div>
+                      <label className="block text-sm text-gray-700 font-semibold mb-1">Tanggal Analisis</label>
+                      <input
+                        type="date"
+                        value={formData.tanggal}
+                        onChange={(e) => setFormData({ ...formData, tanggal: e.target.value })}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
+                      />
                     </div>
                     <div>
                       <label className="block text-sm text-gray-700 font-semibold mb-1">Durasi Video / Survei</label>
