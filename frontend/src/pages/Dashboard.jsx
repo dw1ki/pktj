@@ -14,6 +14,21 @@ const imgGroup2 = 'https://www.figma.com/api/mcp/asset/8e9ebec2-0990-4c6b-842b-b
 const imgGroup3 = 'https://www.figma.com/api/mcp/asset/47b7c3b6-ac26-4283-9b47-1ce77ea35d85'
 const imgGroup4 = 'https://www.figma.com/api/mcp/asset/33045c8c-cf60-416a-b288-ce1d33e57b22'
 
+const getRecordDate = (item) => item?.tanggal || item?.createdAt || null
+
+const formatDateKey = (dateValue) => {
+  if (!dateValue) return null
+
+  const date = new Date(dateValue)
+  if (Number.isNaN(date.getTime())) return null
+
+  const day = String(date.getDate()).padStart(2, '0')
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const year = date.getFullYear()
+
+  return `${year}-${month}-${day}`
+}
+
 export default function Dashboard() {
   const [dashboardData, setDashboardData] = useState(null)
   const [hasData, setHasData] = useState(false)
@@ -47,25 +62,14 @@ export default function Dashboard() {
         const historyData = data.data || []
 
         // Extract unique dates from history data
-        const uniqueDates = [...new Set(historyData.map(item => {
-          if (item.createdAt) {
-            return new Date(item.createdAt).toLocaleDateString('id-ID', { year: 'numeric', month: '2-digit', day: '2-digit' }).split('/').reverse().join('-')
-          }
-          return null
-        }).filter(Boolean))].sort().reverse()
+        const uniqueDates = [...new Set(historyData.map(item => formatDateKey(getRecordDate(item))).filter(Boolean))].sort().reverse()
         
         setAllDates(uniqueDates)
 
         // Filter data based on selected date
         let filteredData = historyData
         if (selectedDate !== 'all' && selectedDate) {
-          filteredData = historyData.filter(item => {
-            if (item.createdAt) {
-              const itemDate = new Date(item.createdAt).toLocaleDateString('id-ID', { year: 'numeric', month: '2-digit', day: '2-digit' }).split('/').reverse().join('-')
-              return itemDate === selectedDate
-            }
-            return false
-          })
+          filteredData = historyData.filter(item => formatDateKey(getRecordDate(item)) === selectedDate)
         }
 
         // Set total analysis count
