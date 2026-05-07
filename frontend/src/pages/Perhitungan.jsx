@@ -24,29 +24,33 @@ const getTodayDateInput = () => {
   return `${year}-${month}-${day}`
 }
 
-const getRecentDateOptions = (days = 90) => {
-  const options = []
-  const now = new Date()
+const formatDateManual = (dateValue) => {
+  if (!dateValue || !/^\d{4}-\d{2}-\d{2}$/.test(dateValue)) return ''
 
-  for (let i = 0; i < days; i++) {
-    const date = new Date(now)
-    date.setDate(now.getDate() - i)
-    const year = date.getFullYear()
-    const month = String(date.getMonth() + 1).padStart(2, '0')
-    const day = String(date.getDate()).padStart(2, '0')
-    options.push(`${year}-${month}-${day}`)
-  }
-
-  return options
+  const [year, month, day] = dateValue.split('-')
+  return `${day}/${month}/${year}`
 }
 
-const formatDateLabel = (dateValue) => {
-  if (!dateValue) return '-'
-  return new Date(`${dateValue}T00:00:00`).toLocaleDateString('id-ID', {
-    day: '2-digit',
-    month: 'long',
-    year: 'numeric',
-  })
+const parseManualDateInput = (inputValue) => {
+  if (!inputValue) return null
+
+  const normalized = inputValue.trim().replace(/[.\-\s]+/g, '/')
+  const match = normalized.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/)
+  if (!match) return null
+
+  const day = Number(match[1])
+  const month = Number(match[2])
+  const year = Number(match[3])
+
+  const date = new Date(year, month - 1, day)
+  const isValid =
+    date.getFullYear() === year &&
+    date.getMonth() === month - 1 &&
+    date.getDate() === day
+
+  if (!isValid) return null
+
+  return `${String(year).padStart(4, '0')}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
 }
 
 const losColors = {
@@ -59,8 +63,6 @@ const losColors = {
 }
 
 export default function Perhitungan() {
-  const dateOptions = getRecentDateOptions(120)
-
   const [dataSource, setDataSource] = useState(null) // 'csv' or 'yolo'
   const [csvUploaded, setCsvUploaded] = useState(false)
   const [showResults, setShowResults] = useState(false)
@@ -96,6 +98,11 @@ export default function Perhitungan() {
   })
 
   const [calculation, setCalculation] = useState(null)
+  const [tanggalManual, setTanggalManual] = useState(() => formatDateManual(getTodayDateInput()))
+
+  useEffect(() => {
+    setTanggalManual(formatDateManual(formData.tanggal))
+  }, [formData.tanggal])
 
   // ================== CALCULATE WAKTU SELESAI FROM DURASI VIDEO ==================
   useEffect(() => {
@@ -1298,17 +1305,36 @@ const handleHitungRumusCSV = (autoFormData, durationSeconds) => {
                     </div>
                     <div>
                       <label className="block text-sm text-gray-700 font-semibold mb-1">Tanggal Analisis</label>
-                      <select
-                        value={formData.tanggal}
-                        onChange={(e) => setFormData({ ...formData, tanggal: e.target.value })}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
-                      >
-                        {dateOptions.map((dateValue) => (
-                          <option key={dateValue} value={dateValue}>
-                            {formatDateLabel(dateValue)}
-                          </option>
-                        ))}
-                      </select>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <input
+                          type="date"
+                          value={formData.tanggal}
+                          onChange={(e) => setFormData({ ...formData, tanggal: e.target.value })}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
+                        />
+                        <input
+                          type="text"
+                          placeholder="dd/mm/yyyy"
+                          value={tanggalManual}
+                          onChange={(e) => {
+                            const value = e.target.value
+                            setTanggalManual(value)
+
+                            const parsedDate = parseManualDateInput(value)
+                            if (parsedDate) {
+                              setFormData({ ...formData, tanggal: parsedDate })
+                            }
+                          }}
+                          onBlur={() => {
+                            const parsedDate = parseManualDateInput(tanggalManual)
+                            if (!parsedDate) {
+                              setTanggalManual(formatDateManual(formData.tanggal))
+                            }
+                          }}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
+                        />
+                      </div>
+                      <p className="text-xs text-gray-500 mt-2">Bisa pilih lewat kalender atau ketik manual format dd/mm/yyyy.</p>
                     </div>
                     <div>
                       <label className="block text-sm text-gray-700 font-semibold mb-1">Durasi Video / Survei</label>
