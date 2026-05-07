@@ -24,6 +24,31 @@ const getTodayDateInput = () => {
   return `${year}-${month}-${day}`
 }
 
+const getRecentDateOptions = (days = 90) => {
+  const options = []
+  const now = new Date()
+
+  for (let i = 0; i < days; i++) {
+    const date = new Date(now)
+    date.setDate(now.getDate() - i)
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    options.push(`${year}-${month}-${day}`)
+  }
+
+  return options
+}
+
+const formatDateLabel = (dateValue) => {
+  if (!dateValue) return '-'
+  return new Date(`${dateValue}T00:00:00`).toLocaleDateString('id-ID', {
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric',
+  })
+}
+
 const losColors = {
   'A': 'bg-purple-100 text-purple-800',
   'B': 'bg-blue-100 text-blue-800',
@@ -34,6 +59,8 @@ const losColors = {
 }
 
 export default function Perhitungan() {
+  const dateOptions = getRecentDateOptions(120)
+
   const [dataSource, setDataSource] = useState(null) // 'csv' or 'yolo'
   const [csvUploaded, setCsvUploaded] = useState(false)
   const [showResults, setShowResults] = useState(false)
@@ -1271,12 +1298,17 @@ const handleHitungRumusCSV = (autoFormData, durationSeconds) => {
                     </div>
                     <div>
                       <label className="block text-sm text-gray-700 font-semibold mb-1">Tanggal Analisis</label>
-                      <input
-                        type="date"
+                      <select
                         value={formData.tanggal}
                         onChange={(e) => setFormData({ ...formData, tanggal: e.target.value })}
                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
-                      />
+                      >
+                        {dateOptions.map((dateValue) => (
+                          <option key={dateValue} value={dateValue}>
+                            {formatDateLabel(dateValue)}
+                          </option>
+                        ))}
+                      </select>
                     </div>
                     <div>
                       <label className="block text-sm text-gray-700 font-semibold mb-1">Durasi Video / Survei</label>
