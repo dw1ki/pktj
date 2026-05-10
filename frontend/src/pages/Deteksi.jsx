@@ -496,6 +496,8 @@ export default function Deteksi() {
   const pollJobDirect = async (jobId, token) => {
     let lastProgress = 0;
     const maxAttempts = 7200; // 2 hours
+    const maxPollingTime = 10 * 60 * 1000; // ⭐ NEW: 10 minute max total timeout for polling
+    const startTime = Date.now();
     let consecutiveErrors = 0;
     const maxConsecutiveErrors = 15; // Give up after 15 consecutive errors
     let pollingInterval = 2000; // ⭐ OPTIMIZED: Start at 2 seconds (from 1s) - first result usually takes 10+ seconds anyway
@@ -503,6 +505,17 @@ export default function Deteksi() {
     const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      // ⭐ NEW: Check total elapsed time
+      const elapsedMs = Date.now() - startTime;
+      const elapsedMinutes = Math.floor(elapsedMs / 60000);
+      if (elapsedMs > maxPollingTime) {
+        console.error(`🔴 POLLING TIMEOUT: Exceeded maximum polling time of ${maxPollingTime / 60000} minutes`);
+        throw new Error(
+          `Polling timeout: Video processing took longer than ${maxPollingTime / 60000} minutes. ` +
+          `Job may still be processing. Job ID: ${jobId}`
+        );
+      }
+
       try {
         if (typeof navigator !== "undefined" && !navigator.onLine) {
           consecutiveErrors++;
@@ -532,7 +545,7 @@ export default function Deteksi() {
           setProgress(job.progress);
           setMessage(`⏳ ${job.message || 'Processing...'}`);
           lastProgress = job.progress;
-          console.log(`📊 Poll ${attempt + 1}: ${job.progress}% - ${job.message}`);
+          console.log(`📊 Poll ${attempt + 1} (${elapsedMinutes}m ${Math.floor((elapsedMs % 60000) / 1000)}s): ${job.progress}% - ${job.message}`);
         }
 
         // Check if done
@@ -558,6 +571,14 @@ export default function Deteksi() {
           ? 'Request timeout'
           : err.message;
 
+        // ⭐ NEW: Handle 503 (Service Unavailable) with special message
+        if (err.response?.status === 503) {
+          console.warn(
+            `⚠️ YOLO API unavailable (503). Job might not have started. ` +
+            `Retrying in backoff...`
+          );
+        }
+
         // Log every error for debugging
         console.warn(
           `⚠️ Poll attempt ${attempt + 1} failed (${consecutiveErrors}/${maxConsecutiveErrors}): ${errorMsg}`
@@ -575,12 +596,12 @@ export default function Deteksi() {
         // ⭐ EXPONENTIAL BACKOFF: Wait longer after errors
         // 1st error: 2s, 2nd: 3s, 3rd: 4s, etc (up to 30s max)
         const backoffDelay = Math.min(1000 + (consecutiveErrors * 1000), 30000);
-        console.log(`  ⏳ Retrying in ${backoffDelay}ms...`);
+        console.log(`  ⏳ Retrying in ${backoffDelay}ms... (${elapsedMinutes}m elapsed)`);
         await sleep(backoffDelay);
       }
     }
 
-    throw new Error('Job polling timeout (>2 hours)');
+    throw new Error(`Job polling timeout: Exceeded ${maxAttempts} attempts (>2 hours)`);
   };
 
   // ================= HANDLE VIDEO UPLOAD =================
