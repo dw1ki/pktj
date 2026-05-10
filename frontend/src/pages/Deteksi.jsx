@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import PropTypes from "prop-types";
 import axios from "axios";
 
@@ -26,6 +26,29 @@ export default function Deteksi() {
   const [processingFrame, setProcessingFrame] = useState(null); // YOLO processing frame
   const [rows, setRows] = useState([]);
   const fileInputRef = useRef(null);
+  const lastLoggedVideoUrlRef = useRef("");
+
+  const latestRow = rows.length > 0 ? rows[rows.length - 1] : null;
+  const processedVideoUrl = useMemo(() => {
+    if (!latestRow?.outputVideoUrl) return null;
+
+    const rawUrl = latestRow.outputVideoUrl;
+    if (rawUrl.startsWith("http")) {
+      return rawUrl;
+    }
+
+    if (rawUrl.startsWith("/")) {
+      return `${API_URL}${rawUrl}`;
+    }
+
+    return `${API_URL}/${rawUrl}`;
+  }, [latestRow?.outputVideoUrl]);
+
+  useEffect(() => {
+    if (!processedVideoUrl || lastLoggedVideoUrlRef.current === processedVideoUrl) return;
+    console.log("📹 Final video URL to play:", processedVideoUrl);
+    lastLoggedVideoUrlRef.current = processedVideoUrl;
+  }, [processedVideoUrl]);
 
   // ================= SAVE TO DATABASE =================
   const handleSaveToDb = async (row) => {
@@ -256,7 +279,12 @@ export default function Deteksi() {
       const jobResult = await pollJobDirect(jobId, token);
       
       if (jobResult.status === 'failed') {
-        throw new Error(`YOLO job failed: ${jobResult.error}`);
+        const jobFailureMessage =
+          jobResult.error ||
+          jobResult.message ||
+          jobResult.result?.error ||
+          'Unknown error from backend';
+        throw new Error(`YOLO job failed: ${jobFailureMessage}`);
       }
 
       if (jobResult.status !== 'completed') {
@@ -433,41 +461,27 @@ export default function Deteksi() {
       };
       
     } catch (err) {
-      console.error("❌ YOLO processing failed:");
-      console.error("   Message:", err.message);
-      console.error("   Status:", err.response?.status);
-      console.error("   URL:", err.config?.url);
-      console.error("   Method:", err.config?.method);
-      console.error("   Headers:", err.config?.headers);
-      console.error("   Data:", err.response?.data);
-      console.error("   Code:", err.code);
+      console.error("❌ YOLO processing failed:", {
+        message: err.message,
+        status: err.response?.status,
+        code: err.code,
+        url: err.config?.url,
+        method: err.config?.method,
+        data: err.response?.data,
+      });
       
       setProgress(100);
       
-      // Show actual error in alert before falling back
       let errorMsg = err.message;
       if (err.response?.data?.details) {
         errorMsg = err.response.data.details;
       }
+      if (!errorMsg || /undefined/i.test(errorMsg)) {
+        errorMsg = err.response?.data?.message || "YOLO processing failed";
+      }
       
       console.error("🔴 Error to display:", errorMsg);
-      alert(`⚠️ YOLO Processing Error:\n${errorMsg}\n\nUsing mock data for now...`);
-      
-      // Fallback to mock
-      return {
-        name: fileName.replace(/\.[^/.]+$/, ""),
-        cloudinaryUrl: `https://via-mock/${fileName}`,
-        vehicles: 1247,
-        avgConfidence: "0.87",
-        duration: "60",
-        frames: 1800,
-        detections: [
-          { type: "car", confidence: 0.92, count: 800 },
-          { type: "truck", confidence: 0.85, count: 200 },
-          { type: "motorcycle", confidence: 0.79, count: 247 },
-        ],
-        status: "Selesai (Mock - YOLO API error)",
-      };
+      throw new Error(errorMsg);
     }
   };
 
@@ -483,11 +497,20 @@ export default function Deteksi() {
     let lastProgress = 0;
     const maxAttempts = 7200; // 2 hours
     let consecutiveErrors = 0;
-    const maxConsecutiveErrors = 10; // Give up after 10 consecutive errors
+    const maxConsecutiveErrors = 15; // Give up after 15 consecutive errors
     let pollingInterval = 2000; // ⭐ OPTIMIZED: Start at 2 seconds (from 1s) - first result usually takes 10+ seconds anyway
+
+    const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
       try {
+        if (typeof navigator !== "undefined" && !navigator.onLine) {
+          consecutiveErrors++;
+          setMessage("⚠️ Koneksi internet terputus, menunggu reconnect...");
+          await sleep(3000);
+          continue;
+        }
+
         // Note: Connection: keep-alive is managed by browser/server automatically
         // Browsers refuse to set these headers directly via JavaScript (security policy)
         // Backend (server.js) sets socket.setKeepAlive(true) at transport level
@@ -525,7 +548,7 @@ export default function Deteksi() {
           pollingInterval = Math.min(pollingInterval + 500, 15000); // Increase by 0.5s, max 15s
         }
 
-        await new Promise(r => setTimeout(r, pollingInterval));
+        await sleep(pollingInterval);
 
       } catch (err) {
         consecutiveErrors++;
@@ -553,7 +576,7 @@ export default function Deteksi() {
         // 1st error: 2s, 2nd: 3s, 3rd: 4s, etc (up to 30s max)
         const backoffDelay = Math.min(1000 + (consecutiveErrors * 1000), 30000);
         console.log(`  ⏳ Retrying in ${backoffDelay}ms...`);
-        await new Promise(r => setTimeout(r, backoffDelay));
+        await sleep(backoffDelay);
       }
     }
 
@@ -771,46 +794,26 @@ export default function Deteksi() {
           {/* Right: Processed Video with Annotations */}
           <div>
             <h4 className="text-sm font-semibold text-gray-700 mb-3">✨ Video Deteksi (dengan Anotasi)</h4>
-            {rows.length > 0 && rows[rows.length - 1].outputVideoUrl ? (
+            {processedVideoUrl ? (
               <div>
                 {/* Backend video streaming (local storage) */}
-                {(() => {
-                  let videoUrl = rows[rows.length - 1].outputVideoUrl;
-                  
-                  // ⭐ FIX: Backend now returns FULL URL (with ngrok domain)
-                  // Don't prepend API_URL if it's already a full URL
-                  if (videoUrl && videoUrl.startsWith('http')) {
-                    // Already full URL from backend (e.g., https://ngrok-url/download/...)
-                    console.log("📹 Using full URL from backend:", videoUrl);
-                  } else if (videoUrl && videoUrl.startsWith('/')) {
-                    // Fallback: relative path (shouldn't happen but just in case)
-                    videoUrl = `${API_URL}${videoUrl}`;
-                    console.log("📹 Converted relative URL:", videoUrl);
-                  }
-                  
-                  console.log("📹 Final video URL to play:", videoUrl);
-                  
-                  return (
-                    <>
-                      <video
-                        key={videoUrl}
-                        src={videoUrl}
-                        controls
-                        controlsList="nodownload"
-                        className="w-full h-80 bg-black rounded-lg"
-                        style={{ objectFit: 'contain' }}
-                        onError={(e) => {
-                          console.error("❌ Video load error:", e);
-                          console.error("Attempted URL:", videoUrl);
-                          console.error("Response status:", e.target?.error);
-                        }}
-                        onCanPlay={() => console.log("✅ Video can play")}
-                        onLoadStart={() => console.log("📺 Video loading started...")}
-                      />
-                      <p className="text-xs text-gray-500 mt-1 break-all">URL: {videoUrl}</p>
-                    </>
-                  );
-                })()}
+                <>
+                  <video
+                    key={processedVideoUrl}
+                    src={processedVideoUrl}
+                    controls
+                    controlsList="nodownload"
+                    className="w-full h-80 bg-black rounded-lg"
+                    style={{ objectFit: 'contain' }}
+                    onError={(e) => {
+                      console.error("❌ Video load error:", {
+                        url: processedVideoUrl,
+                        error: e.target?.error,
+                      });
+                    }}
+                  />
+                  <p className="text-xs text-gray-500 mt-1 break-all">URL: {processedVideoUrl}</p>
+                </>
               </div>
             ) : processingFrame ? (
               <div>
@@ -854,16 +857,6 @@ export default function Deteksi() {
               // ⭐ FIX: Recalculate totalVehicles from lane counts to ensure correctness
               // This overrides any incorrect value from API/database
               const correctTotalVehicles = (summary?.leftLaneCount || 0) + (summary?.rightLaneCount || 0);
-              
-              // DEBUG: Log untuk memastikan nilai correct
-              console.log("🔍 Ringkasan Debug:", {
-                latest_vehicles: latest?.vehicles,
-                summary_totalVehicles: summary?.totalVehicles,
-                leftLaneCount: summary?.leftLaneCount,
-                rightLaneCount: summary?.rightLaneCount,
-                calculated_total: correctTotalVehicles,
-                using_corrected: correctTotalVehicles !== summary?.totalVehicles ? "YES - overridden!" : "NO"
-              });
               
               return (
                 <div className="space-y-4">
