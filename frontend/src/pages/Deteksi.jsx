@@ -496,7 +496,7 @@ export default function Deteksi() {
   const pollJobDirect = async (jobId, token) => {
     let lastProgress = 0;
     const maxAttempts = 7200; // 2 hours
-    const maxPollingTime = 10 * 60 * 1000; // ⭐ NEW: 10 minute max total timeout for polling
+    const maxPollingTime = 60 * 60 * 1000; // ⭐ INCREASED: 60 minute max total timeout (80MB video ~23% progress at 9min, needs ~40+ min total)
     const startTime = Date.now();
     let consecutiveErrors = 0;
     const maxConsecutiveErrors = 15; // Give up after 15 consecutive errors
