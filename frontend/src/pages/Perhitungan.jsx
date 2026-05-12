@@ -33,6 +33,54 @@ const losColors = {
   'F': 'bg-red-100 text-red-800',
 }
 
+const getLosFromDj = (dj) => {
+  if (dj <= 0.20) {
+    return {
+      los: 'A',
+      category: 'Lancar',
+      description: 'Arus lalu lintas dengan kecepatan tinggi. Pengemudi memiliki kebebasan penuh dalam memilih kecepatan.',
+    }
+  }
+
+  if (dj <= 0.44) {
+    return {
+      los: 'B',
+      category: 'Lancar',
+      description: 'Kecepatan sedikit terganggu, namun masih memuaskan. Pengemudi masih memiliki kebebasan memilih kecepatan.',
+    }
+  }
+
+  if (dj <= 0.74) {
+    return {
+      los: 'C',
+      category: 'Stabil',
+      description: 'Kecepatan dipengaruhi lalu lintas lain, tetapi masih dapat ditolerir.',
+    }
+  }
+
+  if (dj <= 0.85) {
+    return {
+      los: 'D',
+      category: 'Mulai Jenuh',
+      description: 'Kecepatan turun drastis. Kemampuan manuver sangat terbatas.',
+    }
+  }
+
+  if (dj <= 1.00) {
+    return {
+      los: 'E',
+      category: 'Jenuh',
+      description: 'Arus pada kapasitas penuh. Kemacetan terjadi.',
+    }
+  }
+
+  return {
+    los: 'F',
+    category: 'Sangat Macet',
+    description: 'Arus terhambat, kemacetan terjadi. Kecepatan mendekati nol.',
+  }
+}
+
 export default function Perhitungan() {
   const [dataSource, setDataSource] = useState(null) // 'csv' or 'yolo'
   const [csvUploaded, setCsvUploaded] = useState(false)
@@ -418,33 +466,24 @@ const handleHitungRumusCSV = (autoFormData, durationSeconds) => {
   const djKiri = volumeQKiri / capacityPerArah
   const djKanan = volumeQKanan / capacityPerArah
   const djKeseluruhan = Math.max(djKiri, djKanan)
-  let los, category, description
-  if (djKeseluruhan <= 0.20) {
-    los = 'A'; category = 'Lancar'; description = 'Arus lalu lintas dengan kecepatan tinggi. Pengemudi memiliki kebebasan penuh dalam memilih kecepatan.'
-  } else if (djKeseluruhan <= 0.44) {
-    los = 'B'; category = 'Lancar'; description = 'Kecepatan sedikit terganggu, namun masih memuaskan. Pengemudi masih memiliki kebebasan memilih kecepatan.'
-  } else if (djKeseluruhan <= 0.74) {
-    los = 'C'; category = 'Stabil'; description = 'Kecepatan dipengaruhi lalu lintas lain, tetapi masih dapat ditolerir.'
-  } else if (djKeseluruhan <= 0.85) {
-    los = 'D'; category = 'Mulai Jenuh'; description = 'Kecepatan turun drastis. Kemampuan manuver sangat terbatas.'
-  } else if (djKeseluruhan <= 1.00) {
-    los = 'E'; category = 'Jenuh'; description = 'Arus pada kapasitas penuh. Kemacetan terjadi.'
-  } else {
-    los = 'F'; category = 'Sangat Macet'; description = 'Arus terhambat, kemacetan terjadi. Kecepatan mendekati nol.'
-  }
+  const losKiri = getLosFromDj(djKiri)
+  const losKanan = getLosFromDj(djKanan)
+  const losKeseluruhan = getLosFromDj(djKeseluruhan)
   const result = {
-    kiri: { ...vehiclesKiri, totalSMP: smpKiri, volume: volumeQKiri, capacity: capacityPerArah, dj: djKiri },
-    kanan: { ...vehiclesKanan, totalSMP: smpKanan, volume: volumeQKanan, capacity: capacityPerArah, dj: djKanan },
+    kiri: { ...vehiclesKiri, totalSMP: smpKiri, volume: volumeQKiri, capacity: capacityPerArah, dj: djKiri, ...losKiri },
+    kanan: { ...vehiclesKanan, totalSMP: smpKanan, volume: volumeQKanan, capacity: capacityPerArah, dj: djKanan, ...losKanan },
     totalSMP: smpKiri + smpKanan,
     hourlyVolume: volumeQKiri + volumeQKanan,
     capacity: capacityPerArah,
     capacityFormula: `${numLanes} × ${baseCapacity} = ${capacityPerArah}`,
     degree: djKeseluruhan,
     degreeFormula: `DJ Max(${djKiri.toFixed(3)}, ${djKanan.toFixed(3)}) = ${djKeseluruhan.toFixed(3)}`,
-    los,
-    category,
-    description,
-    conclusion: `Kondisi lalu lintas berada pada Level of Service ${los} (${category}). DJ Kiri = ${djKiri.toFixed(3)}, DJ Kanan = ${djKanan.toFixed(3)}.`,
+    los: losKeseluruhan.los,
+    category: losKeseluruhan.category,
+    description: losKeseluruhan.description,
+    conclusion: `Kondisi lalu lintas berada pada Level of Service ${losKeseluruhan.los} (${losKeseluruhan.category}). DJ Kiri = ${djKiri.toFixed(3)}, DJ Kanan = ${djKanan.toFixed(3)}.`,
+    conclusionKiri: `Kondisi lalu lintas berada pada Level of Service ${losKiri.los} (${losKiri.category}). DJ Kiri = ${djKiri.toFixed(3)}.`,
+    conclusionKanan: `Kondisi lalu lintas berada pada Level of Service ${losKanan.los} (${losKanan.category}). DJ Kanan = ${djKanan.toFixed(3)}.`,
     videoDurationFormatted: autoFormData.durasi,
     framesCounted: 0,
   }
@@ -564,32 +603,9 @@ const handleHitungRumusCSV = (autoFormData, durationSeconds) => {
 
         // Determine LOS berdasarkan DJ terberat (untuk hasil keseluruhan)
         const djKeseluruhan = Math.max(djKiri, djKanan)
-        let los, category, description
-        if (djKeseluruhan <= 0.20) {
-          los = 'A'
-          category = 'Lancar'
-          description = 'Arus lalu lintas dengan kecepatan tinggi. Pengemudi memiliki kebebasan penuh dalam memilih kecepatan.'
-        } else if (djKeseluruhan <= 0.44) {
-          los = 'B'
-          category = 'Lancar'
-          description = 'Kecepatan sedikit terganggu, namun masih memuaskan. Pengemudi masih memiliki kebebasan memilih kecepatan.'
-        } else if (djKeseluruhan <= 0.74) {
-          los = 'C'
-          category = 'Stabil'
-          description = 'Kecepatan dipengaruhi lalu lintas lain, tetapi masih dapat ditolerir.'
-        } else if (djKeseluruhan <= 0.85) {
-          los = 'D'
-          category = 'Mulai Jenuh'
-          description = 'Kecepatan turun drastis. Kemampuan manuver sangat terbatas.'
-        } else if (djKeseluruhan <= 1.00) {
-          los = 'E'
-          category = 'Jenuh'
-          description = 'Arus pada kapasitas penuh. Kemacetan terjadi.'
-        } else {
-          los = 'F'
-          category = 'Sangat Macet'
-          description = 'Arus terhambat, kemacetan terjadi. Kecepatan mendekati nol.'
-        }
+        const losKiri = getLosFromDj(djKiri)
+        const losKanan = getLosFromDj(djKanan)
+        const losKeseluruhan = getLosFromDj(djKeseluruhan)
 
         const result = {
           // Per arah
@@ -601,6 +617,7 @@ const handleHitungRumusCSV = (autoFormData, durationSeconds) => {
             volume: volumeQKiri,
             capacity: capacityPerArah,
             dj: djKiri,
+            ...losKiri,
           },
           kanan: {
             mobil: vehiclesKanan.mobil,
@@ -610,6 +627,7 @@ const handleHitungRumusCSV = (autoFormData, durationSeconds) => {
             volume: volumeQKanan,
             capacity: capacityPerArah,
             dj: djKanan,
+            ...losKanan,
           },
           // Total/keseluruhan
           totalSMP: smpKiri + smpKanan,
@@ -618,12 +636,12 @@ const handleHitungRumusCSV = (autoFormData, durationSeconds) => {
           capacityFormula: `${numLanes} × ${baseCapacity} = ${capacityPerArah}`,
           degree: djKeseluruhan,
           degreeFormula: `DJ Max(${djKiri.toFixed(3)}, ${djKanan.toFixed(3)}) = ${djKeseluruhan.toFixed(3)}`,
-          los,
-          category,
-          description,
-          conclusion: `Kondisi lalu lintas berada pada Level of Service ${los} (${category}). DJ Kiri = ${djKiri.toFixed(3)}, DJ Kanan = ${djKanan.toFixed(3)}.`,
-          conclusionKiri: `Kondisi lalu lintas berada pada Level of Service ${los} (${category}). DJ Kiri = ${djKiri.toFixed(3)}.`,
-          conclusionKanan: `Kondisi lalu lintas berada pada Level of Service ${los} (${category}). DJ Kanan = ${djKanan.toFixed(3)}.`,
+          los: losKeseluruhan.los,
+          category: losKeseluruhan.category,
+          description: losKeseluruhan.description,
+          conclusion: `Kondisi lalu lintas berada pada Level of Service ${losKeseluruhan.los} (${losKeseluruhan.category}). DJ Kiri = ${djKiri.toFixed(3)}, DJ Kanan = ${djKanan.toFixed(3)}.`,
+          conclusionKiri: `Kondisi lalu lintas berada pada Level of Service ${losKiri.los} (${losKiri.category}). DJ Kiri = ${djKiri.toFixed(3)}.`,
+          conclusionKanan: `Kondisi lalu lintas berada pada Level of Service ${losKanan.los} (${losKanan.category}). DJ Kanan = ${djKanan.toFixed(3)}.`,
           videoDurationFormatted: `${Math.floor(durationMinutes / 60)}:${String(durationMinutes % 60).padStart(2, '0')}`,
           framesCounted: selectedDetection.yoloResults?.totalFrames || 0,
           empFactors: {
@@ -682,10 +700,6 @@ const handleHitungRumusCSV = (autoFormData, durationSeconds) => {
         totalVolume: Math.round(calculation.kiri.volume + calculation.kanan.volume),
         capacity: calculation.capacity,
         djTerberat: calculation.degree,
-        levelPelayanan: calculation.los,
-        kategori: calculation.category,
-        deskripsi: calculation.description,
-        kesimpulan: calculation.conclusion,
       }
 
       // Payload untuk Lajur Kiri
@@ -699,6 +713,10 @@ const handleHitungRumusCSV = (autoFormData, durationSeconds) => {
         volume: Math.round(calculation.kiri.volume),
         capacity: calculation.kiri.capacity,
         dj: calculation.kiri.dj,
+        levelPelayanan: calculation.kiri.los,
+        kategori: calculation.kiri.category,
+        deskripsi: calculation.kiri.description,
+        kesimpulan: calculation.conclusionKiri,
       }
 
       // Payload untuk Lajur Kanan
@@ -712,6 +730,10 @@ const handleHitungRumusCSV = (autoFormData, durationSeconds) => {
         volume: Math.round(calculation.kanan.volume),
         capacity: calculation.kanan.capacity,
         dj: calculation.kanan.dj,
+        levelPelayanan: calculation.kanan.los,
+        kategori: calculation.kanan.category,
+        deskripsi: calculation.kanan.description,
+        kesimpulan: calculation.conclusionKanan,
       }
 
       // Save both records
@@ -923,7 +945,7 @@ const handleHitungRumusCSV = (autoFormData, durationSeconds) => {
         ['Volume (Q)', Math.round(laneData.volume) + ' smp/jam'],
         ['Kapasitas (C)', '5000 smp/jam (2 × 2500)'],
         ['DJ', laneData.dj.toFixed(3)],
-        ['Level of Service (LOS)', calculation.los + ' - ' + calculation.category]
+        ['Level of Service (LOS)', laneData.los + ' - ' + laneData.category]
       ]
       
       autoTable(doc, {
@@ -946,7 +968,7 @@ const handleHitungRumusCSV = (autoFormData, durationSeconds) => {
       yPosition += 5
       doc.setFontSize(9)
       doc.setFont(undefined, 'normal')
-      const analysisLines = doc.splitTextToSize(calculation.description, contentWidth)
+      const analysisLines = doc.splitTextToSize(laneData.description, contentWidth)
       doc.text(analysisLines, margin, yPosition)
       yPosition += analysisLines.length * 4 + 5
       
@@ -1559,15 +1581,15 @@ const handleHitungRumusCSV = (autoFormData, durationSeconds) => {
 
                 <div className="bg-white rounded-lg p-4 mb-4 border-l-4 border-purple-500">
                   <p className="text-sm text-gray-600 mb-1">Level of Service (LOS)</p>
-                  <p className={`text-4xl font-bold rounded-lg py-2 px-3 inline-block ${losColors[calculation.los]}`}>
-                    {calculation.los}
+                  <p className={`text-4xl font-bold rounded-lg py-2 px-3 inline-block ${losColors[calculation.kiri.los]}`}>
+                    {calculation.kiri.los}
                   </p>
-                  <p className="text-xs text-gray-600 mt-2">{calculation.category}</p>
+                  <p className="text-xs text-gray-600 mt-2">{calculation.kiri.category}</p>
                 </div>
 
                 <div className="bg-white rounded-lg p-4 mb-4 border-l-4 border-blue-500">
                   <h4 className="font-semibold text-gray-900 mb-2">📝 Analisis:</h4>
-                  <p className="text-gray-700 leading-relaxed text-sm">{calculation.description}</p>
+                  <p className="text-gray-700 leading-relaxed text-sm">{calculation.kiri.description}</p>
                 </div>
 
                 <div className="bg-white rounded-lg p-4 border-l-4 border-green-500 mb-4">
@@ -1619,15 +1641,15 @@ const handleHitungRumusCSV = (autoFormData, durationSeconds) => {
 
                 <div className="bg-white rounded-lg p-4 mb-4 border-l-4 border-purple-500">
                   <p className="text-sm text-gray-600 mb-1">Level of Service (LOS)</p>
-                  <p className={`text-4xl font-bold rounded-lg py-2 px-3 inline-block ${losColors[calculation.los]}`}>
-                    {calculation.los}
+                  <p className={`text-4xl font-bold rounded-lg py-2 px-3 inline-block ${losColors[calculation.kanan.los]}`}>
+                    {calculation.kanan.los}
                   </p>
-                  <p className="text-xs text-gray-600 mt-2">{calculation.category}</p>
+                  <p className="text-xs text-gray-600 mt-2">{calculation.kanan.category}</p>
                 </div>
 
                 <div className="bg-white rounded-lg p-4 mb-4 border-l-4 border-blue-500">
                   <h4 className="font-semibold text-gray-900 mb-2">📝 Analisis:</h4>
-                  <p className="text-gray-700 leading-relaxed text-sm">{calculation.description}</p>
+                  <p className="text-gray-700 leading-relaxed text-sm">{calculation.kanan.description}</p>
                 </div>
 
                 <div className="bg-white rounded-lg p-4 border-l-4 border-green-500 mb-4">
@@ -1844,13 +1866,13 @@ const handleHitungRumusCSV = (autoFormData, durationSeconds) => {
                   {/* LOS */}
                   <div className="border border-gray-300 rounded p-2 mb-3 bg-yellow-50">
                     <p className="text-xs text-gray-600 font-semibold mb-1">LEVEL OF SERVICE (LOS)</p>
-                    <p className="text-2xl font-bold">{calculation.los} - {calculation.category}</p>
+                    <p className="text-2xl font-bold">{previewLane === 'kiri' ? calculation.kiri.los : calculation.kanan.los} - {previewLane === 'kiri' ? calculation.kiri.category : calculation.kanan.category}</p>
                   </div>
 
                   {/* Analisis & Kesimpulan */}
                   <div className="mb-3">
                     <p className="text-xs font-bold text-gray-900 mb-1">ANALISIS:</p>
-                    <p className="text-xs text-gray-700 leading-relaxed">{calculation.description}</p>
+                    <p className="text-xs text-gray-700 leading-relaxed">{previewLane === 'kiri' ? calculation.kiri.description : calculation.kanan.description}</p>
                   </div>
 
                   <div className="mb-3">
@@ -2114,12 +2136,12 @@ const handleHitungRumusCSV = (autoFormData, durationSeconds) => {
 
     <div class="los-box">
       <div class="los-title">LEVEL OF SERVICE (LOS)</div>
-      <div class="los-value">${calculation.los} - ${calculation.category}</div>
+      <div class="los-value">${laneData.los} - ${laneData.category}</div>
     </div>
 
     <div class="analysis-section">
       <div class="analysis-title">ANALISIS:</div>
-      <div class="analysis-text">${calculation.description}</div>
+      <div class="analysis-text">${laneData.description}</div>
     </div>
 
     <div class="analysis-section">
