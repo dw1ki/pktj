@@ -16,15 +16,20 @@ const imgGroup4 = 'https://www.figma.com/api/mcp/asset/33045c8c-cf60-416a-b288-c
 
 const getRecordDate = (item) => item?.tanggal || item?.createdAt || null
 
-const formatDateKey = (dateValue) => {
+const parseDateValue = (dateValue) => {
   if (!dateValue) return null
 
-  if (typeof dateValue === 'string' && /^\d{4}-\d{2}-\d{2}/.test(dateValue)) {
-    return dateValue.slice(0, 10)
+  if (typeof dateValue === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateValue)) {
+    return new Date(`${dateValue}T00:00:00`)
   }
 
   const date = new Date(dateValue)
-  if (Number.isNaN(date.getTime())) return null
+  return Number.isNaN(date.getTime()) ? null : date
+}
+
+const formatDateKey = (dateValue) => {
+  const date = parseDateValue(dateValue)
+  if (!date) return null
 
   const day = String(date.getDate()).padStart(2, '0')
   const month = String(date.getMonth() + 1).padStart(2, '0')
