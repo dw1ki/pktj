@@ -32,6 +32,15 @@ const formatReadableDate = (dateValue) => {
   return date ? date.toLocaleDateString('id-ID') : '-'
 }
 
+const formatLaneLabel = (lane) => {
+  if (!lane) return '-'
+
+  const normalized = lane.toString().toLowerCase()
+  if (normalized === 'kiri') return 'B'
+  if (normalized === 'kanan') return 'A'
+  return lane
+}
+
 export default function Histori({ onLogout }) {
   const navigate = useNavigate()
   const [historyData, setHistoryData] = useState([])
@@ -226,7 +235,7 @@ export default function Histori({ onLogout }) {
     if (!item) return
     
     const doc = new jsPDF('p', 'mm', 'a4')
-    const laneLabel = item.lajur || 'Unknown'
+    const laneLabel = formatLaneLabel(item.lajur) || 'Unknown'
     const mobil = item.mobil || 0
     const bus = item.bus || 0
     const truk = item.truk || 0
@@ -540,7 +549,7 @@ export default function Histori({ onLogout }) {
                           <td className="px-2 py-2 text-xs whitespace-nowrap">{formatReadableDate(item.tanggal)}</td>
                           <td className="px-2 py-2 text-xs truncate max-w-xs">{item.namaRuas || '-'}</td>
                           <td className="px-2 py-2 text-xs">{item.tipeJalan || '-'}</td>
-                          <td className="px-2 py-2 text-xs text-center">{item.lajur}</td>
+                          <td className="px-2 py-2 text-xs text-center">{formatLaneLabel(item.lajur)}</td>
                           <td className="px-2 py-2 text-xs text-center whitespace-nowrap">{item.intervalWaktu || '-'}</td>
                           <td className="px-2 py-2 text-xs text-center">{item.durasi || '-'}</td>
                           <td className="px-2 py-2 text-xs text-center">{volumeKendaraan}</td>
@@ -652,7 +661,7 @@ export default function Histori({ onLogout }) {
               {/* Header */}
               <div style={{ textAlign: 'center', borderBottom: '2px solid #000', paddingBottom: '15px', marginBottom: '20px' }}>
                 <h2 style={{ margin: '0 0 10px 0', fontSize: '18px', fontWeight: 'bold' }}>LAPORAN ANALISIS LALU LINTAS</h2>
-                <h3 style={{ margin: '5px 0', fontSize: '14px', color: '#666' }}>Metodologi PKJI 2023 - {previewItem.lajur}</h3>
+                <h3 style={{ margin: '5px 0', fontSize: '14px', color: '#666' }}>Metodologi PKJI 2023 - {formatLaneLabel(previewItem.lajur)}</h3>
                 <p style={{ margin: '5px 0', fontSize: '11px', color: '#666' }}>
                   {parseDateValue(previewItem.tanggal)?.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) || '-'}
                 </p>

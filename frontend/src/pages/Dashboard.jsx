@@ -38,6 +38,15 @@ const formatDateKey = (dateValue) => {
   return `${year}-${month}-${day}`
 }
 
+const formatLaneLabel = (lane) => {
+  if (!lane) return '-'
+
+  const normalized = lane.toString().toLowerCase()
+  if (normalized === 'kiri') return 'B'
+  if (normalized === 'kanan') return 'A'
+  return lane
+}
+
 export default function Dashboard() {
   const [dashboardData, setDashboardData] = useState(null)
   const [hasData, setHasData] = useState(false)
@@ -403,7 +412,7 @@ export default function Dashboard() {
                   dataKey="djKiri" 
                   stroke="#3b82f6" 
                   dot={{ fill: '#3b82f6', r: 4 }}
-                  name="DJ Kiri"
+                  name="DJ B"
                   strokeWidth={2}
                 />
                 <Line 
@@ -412,7 +421,7 @@ export default function Dashboard() {
                   dataKey="djKanan" 
                   stroke="#10b981" 
                   dot={{ fill: '#10b981', r: 4 }}
-                  name="DJ Kanan"
+                  name="DJ A"
                   strokeWidth={2}
                 />
                 {/* Volume Lines (Right axis) */}
@@ -422,7 +431,7 @@ export default function Dashboard() {
                   dataKey="volumeKiri" 
                   stroke="#f59e0b" 
                   dot={{ fill: '#f59e0b', r: 4 }}
-                  name="Volume Kiri"
+                  name="Volume B"
                   strokeWidth={2}
                 />
                 <Line 
@@ -431,7 +440,7 @@ export default function Dashboard() {
                   dataKey="volumeKanan" 
                   stroke="#ef4444" 
                   dot={{ fill: '#ef4444', r: 4 }}
-                  name="Volume Kanan"
+                  name="Volume A"
                   strokeWidth={2}
                 />
               </LineChart>

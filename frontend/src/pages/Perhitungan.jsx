@@ -425,7 +425,7 @@ export default function Perhitungan() {
               setCalculation(null)
               setShowResults(false)
               
-              alert(`✅ CSV berhasil di-import!\n\nLajur Kiri: ${leftLaneMobil + leftLaneBus + leftLaneTruk} kendaraan\n- Mobil: ${leftLaneMobil}\n- Bus: ${leftLaneBus}\n- Truk: ${leftLaneTruk}\n\nLajur Kanan: ${rightLaneMobil + rightLaneBus + rightLaneTruk} kendaraan\n- Mobil: ${rightLaneMobil}\n- Bus: ${rightLaneBus}\n- Truk: ${rightLaneTruk}`)
+              alert(`✅ CSV berhasil di-import!\n\nLajur B: ${leftLaneMobil + leftLaneBus + leftLaneTruk} kendaraan\n- Mobil: ${leftLaneMobil}\n- Bus: ${leftLaneBus}\n- Truk: ${leftLaneTruk}\n\nLajur A: ${rightLaneMobil + rightLaneBus + rightLaneTruk} kendaraan\n- Mobil: ${rightLaneMobil}\n- Bus: ${rightLaneBus}\n- Truk: ${rightLaneTruk}`)
               
             } catch (err) {
               console.error('❌ CSV Parse Error:', err)
@@ -481,9 +481,9 @@ const handleHitungRumusCSV = (autoFormData, durationSeconds) => {
     los: losKeseluruhan.los,
     category: losKeseluruhan.category,
     description: losKeseluruhan.description,
-    conclusion: `Kondisi lalu lintas berada pada Level of Service ${losKeseluruhan.los} (${losKeseluruhan.category}). DJ Kiri = ${djKiri.toFixed(3)}, DJ Kanan = ${djKanan.toFixed(3)}.`,
-    conclusionKiri: `Kondisi lalu lintas berada pada Level of Service ${losKiri.los} (${losKiri.category}). DJ Kiri = ${djKiri.toFixed(3)}.`,
-    conclusionKanan: `Kondisi lalu lintas berada pada Level of Service ${losKanan.los} (${losKanan.category}). DJ Kanan = ${djKanan.toFixed(3)}.`,
+    conclusion: `Kondisi lalu lintas berada pada Level of Service ${losKeseluruhan.los} (${losKeseluruhan.category}). DJ B = ${djKiri.toFixed(3)}, DJ A = ${djKanan.toFixed(3)}.`,
+    conclusionKiri: `Kondisi lalu lintas berada pada Level of Service ${losKiri.los} (${losKiri.category}). DJ B = ${djKiri.toFixed(3)}.`,
+    conclusionKanan: `Kondisi lalu lintas berada pada Level of Service ${losKanan.los} (${losKanan.category}). DJ A = ${djKanan.toFixed(3)}.`,
     videoDurationFormatted: autoFormData.durasi,
     framesCounted: 0,
   }
@@ -639,9 +639,9 @@ const handleHitungRumusCSV = (autoFormData, durationSeconds) => {
           los: losKeseluruhan.los,
           category: losKeseluruhan.category,
           description: losKeseluruhan.description,
-          conclusion: `Kondisi lalu lintas berada pada Level of Service ${losKeseluruhan.los} (${losKeseluruhan.category}). DJ Kiri = ${djKiri.toFixed(3)}, DJ Kanan = ${djKanan.toFixed(3)}.`,
-          conclusionKiri: `Kondisi lalu lintas berada pada Level of Service ${losKiri.los} (${losKiri.category}). DJ Kiri = ${djKiri.toFixed(3)}.`,
-          conclusionKanan: `Kondisi lalu lintas berada pada Level of Service ${losKanan.los} (${losKanan.category}). DJ Kanan = ${djKanan.toFixed(3)}.`,
+          conclusion: `Kondisi lalu lintas berada pada Level of Service ${losKeseluruhan.los} (${losKeseluruhan.category}). DJ B = ${djKiri.toFixed(3)}, DJ A = ${djKanan.toFixed(3)}.`,
+          conclusionKiri: `Kondisi lalu lintas berada pada Level of Service ${losKiri.los} (${losKiri.category}). DJ B = ${djKiri.toFixed(3)}.`,
+          conclusionKanan: `Kondisi lalu lintas berada pada Level of Service ${losKanan.los} (${losKanan.category}). DJ A = ${djKanan.toFixed(3)}.`,
           videoDurationFormatted: `${Math.floor(durationMinutes / 60)}:${String(durationMinutes % 60).padStart(2, '0')}`,
           framesCounted: selectedDetection.yoloResults?.totalFrames || 0,
           empFactors: {
@@ -747,7 +747,7 @@ const handleHitungRumusCSV = (autoFormData, durationSeconds) => {
       ])
 
       if (resBoth[0].data.success && resBoth[1].data.success) {
-        alert('✅ Hasil perhitungan berhasil disimpan! (Lajur Kiri & Kanan) Silahkan lihat di halaman Histori.')
+        alert('✅ Hasil perhitungan berhasil disimpan! (Lajur B & A) Silahkan lihat di halaman Histori.')
         // Reset form
         setShowResults(false)
         setCalculation(null)
@@ -851,7 +851,7 @@ const handleHitungRumusCSV = (autoFormData, durationSeconds) => {
   }
 
   const exportPDFFromElement = (lane) => {
-    const laneLabel = lane === 'kiri' ? 'Lajur Kiri' : 'Lajur Kanan'
+    const laneLabel = lane === 'kiri' ? 'Lajur B' : 'Lajur A'
     const laneData = lane === 'kiri' ? calculation.kiri : calculation.kanan
     const conclusionText = lane === 'kiri' ? calculation.conclusionKiri : calculation.conclusionKanan
     
@@ -1101,13 +1101,13 @@ const handleHitungRumusCSV = (autoFormData, durationSeconds) => {
                     {detection.yoloResults?.leftLane && detection.yoloResults?.rightLane && (
                       <div className="grid grid-cols-2 gap-2 text-xs">
                         <div className="bg-blue-50 p-2 rounded border border-blue-200">
-                          <div className="font-semibold text-blue-900 mb-1">🚗 Lajur Kiri</div>
+                          <div className="font-semibold text-blue-900 mb-1">🚗 Lajur B</div>
                           <div className="text-blue-700">
                             Mobil: {detection.yoloResults.leftLane.mobil}, Bus: {detection.yoloResults.leftLane.bus}, Truk: {detection.yoloResults.leftLane.truk}
                           </div>
                         </div>
                         <div className="bg-orange-50 p-2 rounded border border-orange-200">
-                          <div className="font-semibold text-orange-900 mb-1">🚗 Lajur Kanan</div>
+                          <div className="font-semibold text-orange-900 mb-1">🚗 Lajur A</div>
                           <div className="text-orange-700">
                             Mobil: {detection.yoloResults.rightLane.mobil}, Bus: {detection.yoloResults.rightLane.bus}, Truk: {detection.yoloResults.rightLane.truk}
                           </div>
@@ -1273,7 +1273,7 @@ const handleHitungRumusCSV = (autoFormData, durationSeconds) => {
                     {/* Volume Q Per Lajur */}
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-sm text-gray-700 font-semibold mb-1">Volume (Q) Lajur Kiri - smp/jam</label>
+                        <label className="block text-sm text-gray-700 font-semibold mb-1">Volume (Q) Lajur B - smp/jam</label>
                         <input
                           type="text"
                           value={formData.volumeKiri || 0}
@@ -1282,7 +1282,7 @@ const handleHitungRumusCSV = (autoFormData, durationSeconds) => {
                         />
                       </div>
                       <div>
-                        <label className="block text-sm text-gray-700 font-semibold mb-1">Volume (Q) Lajur Kanan - smp/jam</label>
+                        <label className="block text-sm text-gray-700 font-semibold mb-1">Volume (Q) Lajur A - smp/jam</label>
                         <input
                           type="text"
                           value={formData.volumeKanan || 0}
@@ -1358,9 +1358,9 @@ const handleHitungRumusCSV = (autoFormData, durationSeconds) => {
                 <div>
                   <h4 className="font-semibold text-gray-900 mb-4">Data Kendaraan (Per Arah)</h4>
                   <div className="space-y-3">
-                    {/* Lajur Kiri */}
+                    {/* Lajur B */}
                     <div className="bg-blue-50 rounded-lg p-4">
-                      <p className="font-semibold text-blue-900 mb-3">🚗 Lajur Kiri</p>
+                      <p className="font-semibold text-blue-900 mb-3">🚗 Lajur B</p>
                       <div className="grid grid-cols-3 gap-2">
                         <div className="bg-white p-2 rounded">
                           <label className="text-xs text-gray-600">Mobil</label>
@@ -1393,9 +1393,9 @@ const handleHitungRumusCSV = (autoFormData, durationSeconds) => {
                       <p className="text-xs text-gray-600 mt-2">Total: {(formData.kiri?.mobil || 0) + (formData.kiri?.bus || 0) + (formData.kiri?.truk || 0)} unit</p>
                     </div>
 
-                    {/* Lajur Kanan */}
+                    {/* Lajur A */}
                     <div className="bg-green-50 rounded-lg p-4">
-                      <p className="font-semibold text-green-900 mb-3">🚗 Lajur Kanan</p>
+                      <p className="font-semibold text-green-900 mb-3">🚗 Lajur A</p>
                       <div className="grid grid-cols-3 gap-2">
                         <div className="bg-white p-2 rounded">
                           <label className="text-xs text-gray-600">Mobil</label>
@@ -1471,7 +1471,7 @@ const handleHitungRumusCSV = (autoFormData, durationSeconds) => {
                         </thead>
                         <tbody>
                           <tr className="border-b border-gray-300 bg-blue-100">
-                            <td className="p-2 font-semibold text-blue-900">Lajur Kiri</td>
+                            <td className="p-2 font-semibold text-blue-900">Lajur B</td>
                             <td className="text-center p-2">{calculation.kiri.mobil}</td>
                             <td className="text-center p-2">{calculation.kiri.bus}</td>
                             <td className="text-center p-2">{calculation.kiri.truk}</td>
@@ -1480,7 +1480,7 @@ const handleHitungRumusCSV = (autoFormData, durationSeconds) => {
                             <td className="text-center p-2 font-bold text-orange-600">{calculation.kiri.dj.toFixed(3)}</td>
                           </tr>
                           <tr className="border-b border-gray-300 bg-green-100">
-                            <td className="p-2 font-semibold text-green-900">Lajur Kanan</td>
+                            <td className="p-2 font-semibold text-green-900">Lajur A</td>
                             <td className="text-center p-2">{calculation.kanan.mobil}</td>
                             <td className="text-center p-2">{calculation.kanan.bus}</td>
                             <td className="text-center p-2">{calculation.kanan.truk}</td>
@@ -1495,9 +1495,9 @@ const handleHitungRumusCSV = (autoFormData, durationSeconds) => {
 
                       {/* Detail C dan Q Per Lajur */}
                       <div className="grid grid-cols-2 gap-3">
-                        {/* Lajur Kiri */}
+                        {/* Lajur B */}
                         <div className="bg-blue-50 p-3 rounded-lg border-l-4 border-blue-500">
-                          <h5 className="font-semibold text-blue-900 mb-2">🚗 Lajur Kiri</h5>
+                          <h5 className="font-semibold text-blue-900 mb-2">🚗 Lajur B</h5>
                           <div className="space-y-1 text-xs text-gray-700">
                             <p><strong>Volume (Q):</strong> {calculation.kiri.volume.toFixed(0)} smp/jam</p>
                             <p className="text-xs text-gray-600">({calculation.kiri.mobil} mobil + {calculation.kiri.bus} bus + {calculation.kiri.truk} truk)</p>
@@ -1508,9 +1508,9 @@ const handleHitungRumusCSV = (autoFormData, durationSeconds) => {
                           </div>
                         </div>
 
-                        {/* Lajur Kanan */}
+                        {/* Lajur A */}
                         <div className="bg-green-50 p-3 rounded-lg border-l-4 border-green-500">
-                          <h5 className="font-semibold text-green-900 mb-2">🚗 Lajur Kanan</h5>
+                          <h5 className="font-semibold text-green-900 mb-2">🚗 Lajur A</h5>
                           <div className="space-y-1 text-xs text-gray-700">
                             <p><strong>Volume (Q):</strong> {calculation.kanan.volume.toFixed(0)} smp/jam</p>
                             <p className="text-xs text-gray-600">({calculation.kanan.mobil} mobil + {calculation.kanan.bus} bus + {calculation.kanan.truk} truk)</p>
@@ -1553,11 +1553,11 @@ const handleHitungRumusCSV = (autoFormData, durationSeconds) => {
           {/* Conclusion Card - Split by Lane - Side by Side */}
           {showResults && calculation && (
             <div className="grid grid-cols-2 gap-6">
-              {/* Lajur Kiri Card */}
+              {/* Lajur B Card */}
               <Card className="border-l-4 border-blue-400 bg-blue-50">
                 <div className="flex items-center gap-3 mb-4">
                   <span className="text-3xl">🚗</span>
-                  <h3 className="text-lg font-semibold text-blue-900">Hasil Analisis & Kesimpulan - Lajur Kiri</h3>
+                  <h3 className="text-lg font-semibold text-blue-900">Hasil Analisis & Kesimpulan - Lajur B</h3>
                 </div>
 
                 <div className="grid grid-cols-3 gap-4 mb-6">
@@ -1613,11 +1613,11 @@ const handleHitungRumusCSV = (autoFormData, durationSeconds) => {
                 </div>
               </Card>
 
-              {/* Lajur Kanan Card */}
+              {/* Lajur A Card */}
               <Card className="border-l-4 border-green-400 bg-green-50">
                 <div className="flex items-center gap-3 mb-4">
                   <span className="text-3xl">🚗</span>
-                  <h3 className="text-lg font-semibold text-green-900">Hasil Analisis & Kesimpulan - Lajur Kanan</h3>
+                  <h3 className="text-lg font-semibold text-green-900">Hasil Analisis & Kesimpulan - Lajur A</h3>
                 </div>
 
                 <div className="grid grid-cols-3 gap-4 mb-6">
@@ -1759,7 +1759,7 @@ const handleHitungRumusCSV = (autoFormData, durationSeconds) => {
               <div className="bg-white rounded-lg w-full max-w-4xl">
                 {/* Modal Header - Sticky */}
                 <div className="sticky top-0 bg-blue-600 text-white px-4 py-3 flex justify-between items-center z-10">
-                  <h2 className="text-lg font-bold">Print Preview - {previewLane === 'kiri' ? 'Lajur Kiri' : previewLane === 'kanan' ? 'Lajur Kanan' : 'Analisis Lalu Lintas'}</h2>
+                  <h2 className="text-lg font-bold">Print Preview - {previewLane === 'kiri' ? 'Lajur B' : previewLane === 'kanan' ? 'Lajur A' : 'Analisis Lalu Lintas'}</h2>
                   <button
                     onClick={() => {
                       setShowPrintPreview(false)
@@ -1778,7 +1778,7 @@ const handleHitungRumusCSV = (autoFormData, durationSeconds) => {
                   {/* Header */}
                   <div className="text-center border-b-2 border-gray-300 pb-3 mb-3">
                     <h2 className="text-xl font-bold text-gray-900">LAPORAN ANALISIS LALU LINTAS</h2>
-                    <p className="text-xs text-gray-600">{previewLane === 'kiri' ? 'LAJUR KIRI' : 'LAJUR KANAN'} - Metodologi PKJI 2023</p>
+                    <p className="text-xs text-gray-600">{previewLane === 'kiri' ? 'LAJUR B' : 'LAJUR A'} - Metodologi PKJI 2023</p>
                     <p className="text-xs text-gray-600 mt-1">{new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
                   </div>
 
@@ -1893,7 +1893,7 @@ const handleHitungRumusCSV = (autoFormData, durationSeconds) => {
                       // Open print window dengan content dari modal
                       const printWindow = window.open('', '', 'width=900,height=1200')
                       const printDoc = printWindow.document
-                      const laneTitle = previewLane === 'kiri' ? 'LAJUR KIRI' : 'LAJUR KANAN'
+                      const laneTitle = previewLane === 'kiri' ? 'LAJUR B' : 'LAJUR A'
                       
                       printDoc.write(`<!DOCTYPE html>
 <html>

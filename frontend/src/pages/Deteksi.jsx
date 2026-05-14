@@ -680,14 +680,14 @@ export default function Deteksi() {
       "Interval Waktu",
       "Frame", 
       "Status",
-      "Lajur Kiri Total",
-      "Lajur Kiri Mobil",
-      "Lajur Kiri Bus",
-      "Lajur Kiri Truk",
-      "Lajur Kanan Total",
-      "Lajur Kanan Mobil",
-      "Lajur Kanan Bus",
-      "Lajur Kanan Truk"
+      "Lajur B Total",
+      "Lajur B Mobil",
+      "Lajur B Bus",
+      "Lajur B Truk",
+      "Lajur A Total",
+      "Lajur A Mobil",
+      "Lajur A Bus",
+      "Lajur A Truk"
     ];
     const csvContent = [
       headers.join(","),
@@ -889,21 +889,21 @@ export default function Deteksi() {
                     </div>
                     
                     <div className="bg-white rounded p-4 border-2 border-purple-300">
-                      <p className="text-xs text-gray-600 font-semibold">Lajur Kiri</p>
+                      <p className="text-xs text-gray-600 font-semibold">Lajur B</p>
                       <p className="text-3xl font-bold text-purple-600">{summary.leftLaneCount || 0}</p>
                     </div>
                     
                     <div className="bg-white rounded p-4 border-2 border-orange-300">
-                      <p className="text-xs text-gray-600 font-semibold">Lajur Kanan</p>
+                      <p className="text-xs text-gray-600 font-semibold">Lajur A</p>
                       <p className="text-3xl font-bold text-orange-600">{summary.rightLaneCount || 0}</p>
                     </div>
                   </div>
                   
                   {/* Per-Lane Vehicle Breakdown */}
                   <div className="grid grid-cols-2 gap-4">
-                    {/* Lajur Kiri */}
+                    {/* Lajur B */}
                     <div className="bg-purple-50 rounded-lg p-4 border-2 border-purple-300">
-                      <h4 className="font-semibold text-purple-900 mb-3">🚗 Lajur Kiri</h4>
+                      <h4 className="font-semibold text-purple-900 mb-3">🚗 Lajur B</h4>
                       <div className="space-y-2">
                         <div className="flex justify-between items-center">
                           <span className="text-sm text-gray-600">Mobil</span>
@@ -920,9 +920,9 @@ export default function Deteksi() {
                       </div>
                     </div>
                     
-                    {/* Lajur Kanan */}
+                    {/* Lajur A */}
                     <div className="bg-orange-50 rounded-lg p-4 border-2 border-orange-300">
-                      <h4 className="font-semibold text-orange-900 mb-3">🚗 Lajur Kanan</h4>
+                      <h4 className="font-semibold text-orange-900 mb-3">🚗 Lajur A</h4>
                       <div className="space-y-2">
                         <div className="flex justify-between items-center">
                           <span className="text-sm text-gray-600">Mobil</span>
