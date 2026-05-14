@@ -19,6 +19,10 @@ const getRecordDate = (item) => item?.tanggal || item?.createdAt || null
 const formatDateKey = (dateValue) => {
   if (!dateValue) return null
 
+  if (typeof dateValue === 'string' && /^\d{4}-\d{2}-\d{2}/.test(dateValue)) {
+    return dateValue.slice(0, 10)
+  }
+
   const date = new Date(dateValue)
   if (Number.isNaN(date.getTime())) return null
 

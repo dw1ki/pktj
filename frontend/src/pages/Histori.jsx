@@ -5,6 +5,32 @@ import { jsPDF } from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import Card from '../components/UI/Card'
 
+const formatDateKey = (dateValue) => {
+  if (!dateValue) return null
+
+  if (typeof dateValue === 'string' && /^\d{4}-\d{2}-\d{2}/.test(dateValue)) {
+    return dateValue.slice(0, 10)
+  }
+
+  const date = new Date(dateValue)
+  if (Number.isNaN(date.getTime())) return null
+
+  const day = String(date.getDate()).padStart(2, '0')
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const year = date.getFullYear()
+
+  return `${year}-${month}-${day}`
+}
+
+const formatDateDisplay = (dateValue) => {
+  const dateKey = formatDateKey(dateValue)
+  if (!dateKey) return '-'
+
+  const [year, month, day] = dateKey.split('-').map(Number)
+  const localDate = new Date(year, month - 1, day)
+  return localDate.toLocaleDateString('id-ID')
+}
+
 export default function Histori({ onLogout }) {
   const navigate = useNavigate()
   const [historyData, setHistoryData] = useState([])
@@ -18,11 +44,8 @@ export default function Histori({ onLogout }) {
 
   // Filter data berdasarkan tanggal yang dipilih
   const filteredData = selectedDate === 'all' ? historyData : historyData.filter(item => {
-    if (item.tanggal) {
-      const itemDate = new Date(item.tanggal).toISOString().split('T')[0]
-      return itemDate === selectedDate
-    }
-    return false
+    const itemDate = formatDateKey(item.tanggal)
+    return itemDate === selectedDate
   })
 
   // Sort data
@@ -184,10 +207,7 @@ export default function Histori({ onLogout }) {
 
         // Extract unique dates
         const uniqueDates = [...new Set(normalized.map(item => {
-          if (item.tanggal) {
-            return new Date(item.tanggal).toISOString().split('T')[0]
-          }
-          return null
+          return formatDateKey(item.tanggal)
         }).filter(Boolean))].sort().reverse()
         setAllDates(uniqueDates)
       } catch (err) {
@@ -224,7 +244,7 @@ export default function Histori({ onLogout }) {
     doc.text(`Metodologi PKJI 2023 - ${laneLabel}`, 105, 25, { align: 'center' })
     
     doc.setFontSize(10)
-    doc.text(`Tanggal: ${new Date(item.tanggal).toLocaleDateString('id-ID')}`, 105, 32, { align: 'center' })
+    doc.text(`Tanggal: ${formatDateDisplay(item.tanggal)}`, 105, 32, { align: 'center' })
 
     // Info table
     const infoData = [
@@ -295,7 +315,7 @@ export default function Histori({ onLogout }) {
     }
 
     const doc = new jsPDF('l', 'mm', 'a4')
-    const dateLabel = selectedDate === 'all' ? 'Semua Tanggal' : new Date(selectedDate).toLocaleDateString('id-ID')
+    const dateLabel = selectedDate === 'all' ? 'Semua Tanggal' : formatDateDisplay(selectedDate)
 
     // Header
     doc.setFontSize(16)
@@ -314,7 +334,7 @@ export default function Histori({ onLogout }) {
 
     const tableBody = sortedData.map((item, index) => [
       index + 1,
-      new Date(item.tanggal).toLocaleDateString('id-ID'),
+      formatDateDisplay(item.tanggal),
       item.namaRuas || '-',
       item.tipeJalan || '-',
       item.lajur || '-',
@@ -518,7 +538,7 @@ export default function Histori({ onLogout }) {
                       return (
                         <tr key={item._id || index} className="border-b border-gray-200 hover:bg-gray-50">
                           <td className="px-2 py-2 text-xs">{(currentPage - 1) * itemsPerPage + index + 1}</td>
-                          <td className="px-2 py-2 text-xs whitespace-nowrap">{new Date(item.tanggal).toLocaleDateString('id-ID')}</td>
+                          <td className="px-2 py-2 text-xs whitespace-nowrap">{formatDateDisplay(item.tanggal)}</td>
                           <td className="px-2 py-2 text-xs truncate max-w-xs">{item.namaRuas || '-'}</td>
                           <td className="px-2 py-2 text-xs">{item.tipeJalan || '-'}</td>
                           <td className="px-2 py-2 text-xs text-center">{item.lajur}</td>
@@ -635,7 +655,7 @@ export default function Histori({ onLogout }) {
                 <h2 style={{ margin: '0 0 10px 0', fontSize: '18px', fontWeight: 'bold' }}>LAPORAN ANALISIS LALU LINTAS</h2>
                 <h3 style={{ margin: '5px 0', fontSize: '14px', color: '#666' }}>Metodologi PKJI 2023 - {previewItem.lajur}</h3>
                 <p style={{ margin: '5px 0', fontSize: '11px', color: '#666' }}>
-                  {new Date(previewItem.tanggal).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
+                  {formatDateDisplay(previewItem.tanggal)}
                 </p>
               </div>
 

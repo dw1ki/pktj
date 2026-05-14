@@ -696,7 +696,7 @@ const handleHitungRumusCSV = (autoFormData, durationSeconds) => {
         tipeJalan: formData.tipeJalan,
         intervalWaktu: `${formData.waktuMulai}-${formData.waktuSelesai}`,
         durasi: formData.durasi,
-        tanggal: new Date(`${formData.tanggal}T00:00:00`).toISOString(),
+        tanggal: formData.tanggal,
         totalVolume: Math.round(calculation.kiri.volume + calculation.kanan.volume),
         capacity: calculation.capacity,
         djTerberat: calculation.degree,
