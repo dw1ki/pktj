@@ -98,7 +98,7 @@ export default function Perhitungan() {
   const [formData, setFormData] = useState({
     namaRuas: '',
     tipeAlinemen: 'datar',
-    tipeJalan: '4/2 D',
+    tipeJalan: '4/2',
     tanggal: getTodayDateInput(),
     jumlahLajur: '',
     kapasitas: '',
@@ -290,7 +290,7 @@ export default function Perhitungan() {
     const newFormData = {
       namaRuas: detection.fileName || 'Tidak diketahui',
       tipeAlinemen: 'datar', // Default datar
-      tipeJalan: '4/2 D', // Default 4/2 D
+      tipeJalan: '4/2', // Default 4/2
       jumlahLajur: '',
       kapasitas: '',
       kecepatan: detection.roadParameters?.baseSpeed || '88',
@@ -396,7 +396,7 @@ export default function Perhitungan() {
               setFormData({
                 namaRuas: csvData['Nama Ruas'] || 'MBZ',
                 tipeAlinemen: 'datar',
-                tipeJalan: '4/2 D',
+                tipeJalan: '4/2',
                 tanggal: getTodayDateInput(),
                 jumlahLajur: '4',
                 kapasitas: '5000',
@@ -459,8 +459,8 @@ const handleHitungRumusCSV = (autoFormData, durationSeconds) => {
   // Kapasitas
   const baseCapacity = BASE_CAPACITY[autoFormData.tipeJalan] || 5000
   let numLanes = 1
-  if (autoFormData.tipeJalan === '4/2 D') numLanes = 2
-  else if (autoFormData.tipeJalan === '6/2 D') numLanes = 3
+  if (autoFormData.tipeJalan === '4/2') numLanes = 2
+  else if (autoFormData.tipeJalan === '6/2') numLanes = 3
   const capacityPerArah = baseCapacity * numLanes
   // DJ
   const djKiri = volumeQKiri / capacityPerArah
@@ -589,8 +589,8 @@ const handleHitungRumusCSV = (autoFormData, durationSeconds) => {
         const baseCapacity = BASE_CAPACITY[formData.tipeJalan] || 5000
         // Determine number of lanes per direction
         let numLanes = 1
-        if (formData.tipeJalan === '4/2 D') numLanes = 2
-        else if (formData.tipeJalan === '6/2 D') numLanes = 3
+        if (formData.tipeJalan === '4/2') numLanes = 2
+        else if (formData.tipeJalan === '6/2') numLanes = 3
         
         // Capacity per arah = base capacity per lane × number of lanes
         const capacityPerArah = baseCapacity * numLanes
@@ -754,7 +754,7 @@ const handleHitungRumusCSV = (autoFormData, durationSeconds) => {
         setFormData({
           namaRuas: '',
           tipeAlinemen: 'datar',
-          tipeJalan: '4/2 D',
+          tipeJalan: '4/2',
           tanggal: getTodayDateInput(),
           jumlahLajur: '',
           kapasitas: '',
@@ -897,7 +897,7 @@ const handleHitungRumusCSV = (autoFormData, durationSeconds) => {
       doc.setFont(undefined, 'normal')
       const infoData = [
         ['Nama Ruas Jalan', formData.namaRuas || '-'],
-        ['Tipe Jalan', '4/2 D'],
+        ['Tipe Jalan', '4/2'],
         ['Interval Waktu', formData.waktuMulai && formData.waktuSelesai ? `${formData.waktuMulai} - ${formData.waktuSelesai}` : '-'],
         ['Lajur', lane === 'kiri' ? 'Kiri' : 'Kanan']
       ]
@@ -1208,7 +1208,7 @@ const handleHitungRumusCSV = (autoFormData, durationSeconds) => {
                       <label className="block text-sm text-gray-700 font-semibold mb-1">Tipe Jalan</label>
                       <input
                         type="text"
-                        value="4/2 D"
+                        value="4/2"
                         className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100"
                         disabled
                       />
@@ -1218,7 +1218,7 @@ const handleHitungRumusCSV = (autoFormData, durationSeconds) => {
                       <label className="block text-sm text-gray-700 font-semibold mb-1">Jumlah Lajur (n) <span className="text-xs text-gray-500">otomatis dari tipe jalan</span></label>
                       <input
                         type="text"
-                        value={formData.tipeJalan === '2/2 UD' ? '1' : formData.tipeJalan === '4/2 D' ? '2' : '3'}
+                        value={formData.tipeJalan === '2/2' ? '1' : formData.tipeJalan === '4/2' ? '2' : '3'}
                         className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100"
                         disabled
                       />
@@ -1453,7 +1453,7 @@ const handleHitungRumusCSV = (autoFormData, durationSeconds) => {
                       <div className="bg-white border-l-4 border-purple-500 p-3 rounded">
                         <p className="text-sm font-semibold text-gray-900 mb-1">Kapasitas Jalan (C):</p>
                         <p className="text-lg font-bold text-purple-900 mb-1">{calculation.kiri.capacity} smp/jam</p>
-                        <p className="text-xs text-gray-600">{formData.tipeJalan === '4/2 D' ? 2 : formData.tipeJalan === '6/2 D' ? 3 : 1} × {calculation.kiri.capacity / (formData.tipeJalan === '4/2 D' ? 2 : formData.tipeJalan === '6/2 D' ? 3 : 1)} = {calculation.kiri.capacity}</p>
+                        <p className="text-xs text-gray-600">{formData.tipeJalan === '4/2' ? 2 : formData.tipeJalan === '6/2' ? 3 : 1} × {calculation.kiri.capacity / (formData.tipeJalan === '4/2' ? 2 : formData.tipeJalan === '6/2' ? 3 : 1)} = {calculation.kiri.capacity}</p>
                       </div>
 
                       <hr className="my-2" />
@@ -2063,7 +2063,7 @@ const handleHitungRumusCSV = (autoFormData, durationSeconds) => {
       </div>
       <div class="info-item">
         <div class="info-label">Tipe Jalan</div>
-        <div class="info-value">4/2 D</div>
+        <div class="info-value">4/2</div>
       </div>
       <div class="info-item">
         <div class="info-label">Interval Waktu</div>
