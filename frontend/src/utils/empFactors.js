@@ -63,12 +63,12 @@ export const EMP_FACTORS = {
       BB: 1.2,    // Bus
       TB: 1.6,    // Truk
     },
-    '4/2 D': {
+    '4/2': {
       KS: 1.2,
       BB: 1.4,
       TB: 2.0,
     },
-    '6/2 D': {
+    '6/2': {
       KS: 1.2,
       BB: 1.4,
       TB: 2.0,
@@ -82,12 +82,12 @@ export const EMP_FACTORS = {
       BB: 1.6,
       TB: 4.8,
     },
-    '4/2 D': {
+    '4/2': {
       KS: 1.8,
       BB: 2.0,
       TB: 4.9,
     },
-    '6/2 D': {
+    '6/2': {
       KS: 2.2,
       BB: 2.3,
       TB: 4.5,
@@ -101,12 +101,12 @@ export const EMP_FACTORS = {
       BB: 2.2,
       TB: 5.0,
     },
-    '4/2 D': {
+    '4/2': {
       KS: 2.9,
       BB: 2.6,
       TB: 5.1,
     },
-    '6/2 D': {
+    '6/2': {
       KS: 2.6,
       BB: 2.9,
       TB: 4.8,
@@ -119,8 +119,8 @@ export const EMP_FACTORS = {
  */
 export const BASE_CAPACITY = {
   '2/2 UD': 1550,  // smp/jam per lajur, × 2 = 3100
-  '4/2 D': 2500,   // smp/jam per lajur, × 2 = 5000
-  '6/2 D': 1667,   // smp/jam per lajur, × 3 = 5000
+  '4/2': 2500,   // smp/jam per lajur, × 2 = 5000
+  '6/2': 1667,   // smp/jam per lajur, × 3 = 5000
 };
 
 /**
@@ -129,7 +129,7 @@ export const BASE_CAPACITY = {
  * 
  * @param {Object} vehicles - { mobil, bus, truk }
  * @param {String} alinemen - 'datar', 'bukit', 'gunung' (untuk mode statis)
- * @param {String} tipeJalan - '2/2 UD', '4/2 D', '6/2 D' (untuk mode statis)
+ * @param {String} tipeJalan - '2/2 UD', '4/2', '6/2' (untuk mode statis)
  * @param {Number} flowRatePerDirection - Q per arah (smp/jam) - untuk mode dinamis (optional)
  * @returns {Number} Total SMP
  */

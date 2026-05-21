@@ -16,7 +16,7 @@ const Perhitungan = () => {
   // MANUAL INPUT PARAMETERS
   const [roadParams, setRoadParams] = useState({
     roadName: 'MBZ',
-    roadType: '4/2 D',
+    roadType: '4/2',
     numLanes: 4,
     baseCapacity: 5000,
     laneWidth: 3.5,
@@ -240,7 +240,7 @@ const Perhitungan = () => {
                   value={roadParams.roadType}
                   onChange={handleInputChange}
                   className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none"
-                  placeholder="Contoh: 4/2 D"
+                  placeholder="Contoh: 4/2"
                 />
               </div>
 

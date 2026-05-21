@@ -1745,7 +1745,7 @@ const handleHitungRumusCSV = (autoFormData, durationSeconds) => {
               </p>
               <ul className="text-xs text-blue-800 space-y-1 ml-4 list-disc">
                 <li><strong>n (Jumlah Lajur):</strong> Dihitung otomatis dari tipe jalan per arah</li>
-                <li><strong>C₀ (Kapasitas Dasar):</strong> Standar 2.500 smp/jam per lajur untuk jalan 4/2D</li>
+                <li><strong>C₀ (Kapasitas Dasar):</strong> Standar 2.500 smp/jam per lajur untuk jalan 4/2</li>
                 <li><strong>FCLE (Faktor Lebar Lajur):</strong> Ditetapkan dari Tabel PKJI 2023 berdasarkan lebar lajur aktual</li>
                 <li><strong>C (Kapasitas Jalan):</strong> Hasil perkalian n × C₀ × FCLE sesuai rumus PKJI 2023</li>
                 <li><strong>DJ (Derajat Kejenuhan):</strong> Rasio volume terhadap kapasitas, menunjukkan tingkat kepadatan arus</li>

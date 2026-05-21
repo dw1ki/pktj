@@ -183,7 +183,7 @@ export default function HistoriDetail() {
               </div>
               <div className="flex justify-between py-3 border-b border-gray-200">
                 <span className="text-gray-700">Tipe Jalan</span>
-                <span className="font-bold text-gray-900">4/2 D</span>
+                <span className="font-bold text-gray-900">4/2</span>
               </div>
               <div className="flex justify-between py-3 border-b border-gray-200">
                 <span className="text-gray-700">Jumlah Lajur</span>
