@@ -24,55 +24,55 @@ export default function App() {
 
         {/* Semua halaman dengan layout */}
         <Route path="/dashboard" element={
-          <PrivateRoute allowedRoles={["admin", "surveyor", "user"]}>
+          <PrivateRoute allowedRoles={["admin", "user"]}>
             <Layout><Dashboard /></Layout>
           </PrivateRoute>
         } />
         
         <Route path="/deteksi" element={
-          <PrivateRoute allowedRoles={["admin", "surveyor"]}>
+          <PrivateRoute allowedRoles={["admin", "user"]}>
             <Layout><Deteksi /></Layout>
           </PrivateRoute>
         } />
         
         <Route path="/perhitungan" element={
-          <PrivateRoute allowedRoles={["admin", "surveyor"]}>
+          <PrivateRoute allowedRoles={["admin", "user"]}>
             <Layout><Perhitungan /></Layout>
           </PrivateRoute>
         } />
         
         <Route path="/histori" element={
-          <PrivateRoute allowedRoles={["admin", "surveyor"]}>
+          <PrivateRoute allowedRoles={["admin", "user"]}>
             <Layout><Histori /></Layout>
           </PrivateRoute>
         } />
         
         <Route path="/histori/:id" element={
-          <PrivateRoute allowedRoles={["admin", "surveyor"]}>
+          <PrivateRoute allowedRoles={["admin", "user"]}>
             <Layout><HistoriDetail /></Layout>
           </PrivateRoute>
         } />
         
         <Route path="/informasi" element={
-          <PrivateRoute allowedRoles={["admin", "surveyor", "user"]}>
+          <PrivateRoute allowedRoles={["admin", "user"]}>
             <Layout><InformasiWebsite /></Layout>
           </PrivateRoute>
         } />
         
         <Route path="/petunjuk" element={
-          <PrivateRoute allowedRoles={["admin", "surveyor", "user"]}>
+          <PrivateRoute allowedRoles={["admin", "user"]}>
             <Layout><PetunjukPenggunaan /></Layout>
           </PrivateRoute>
         } />
         
         <Route path="/deteksi-video" element={
-          <PrivateRoute allowedRoles={["admin", "surveyor"]}>
+          <PrivateRoute allowedRoles={["admin", "user"]}>
             <Layout><VideoDetection /></Layout>
           </PrivateRoute>
         } />
 
         <Route path="/realtime" element={
-          <PrivateRoute allowedRoles={["admin", "surveyor"]}>
+          <PrivateRoute allowedRoles={["admin", "user"]}>
             <Layout><RealtimeMonitoring /></Layout>
           </PrivateRoute>
         } />
