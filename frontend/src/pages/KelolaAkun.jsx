@@ -7,7 +7,7 @@ export default function KelolaAkun() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
-  const [form, setForm] = useState({ name: "", email: "", role: "surveyor", password: "" });
+  const [form, setForm] = useState({ name: "", email: "", role: "user", password: "" });
   const [editingId, setEditingId] = useState(null);
 
   const token = localStorage.getItem("accessToken");
@@ -76,7 +76,7 @@ export default function KelolaAkun() {
         await axios.post(`${API_URL}/users`, form, { headers });
         setSuccessMsg("Pengguna baru berhasil ditambahkan");
       }
-      setForm({ name: "", email: "", role: "surveyor", password: "" });
+      setForm({ name: "", email: "", role: "user", password: "" });
       setEditingId(null);
       fetchUsers();
     } catch (err) {
@@ -93,7 +93,7 @@ export default function KelolaAkun() {
   };
 
   const handleCancel = () => {
-    setForm({ name: "", email: "", role: "surveyor", password: "" });
+    setForm({ name: "", email: "", role: "user", password: "" });
     setEditingId(null);
     setError("");
     setSuccessMsg("");
@@ -167,7 +167,6 @@ export default function KelolaAkun() {
                 onChange={handleChange}
                 className="w-full border border-gray-300 px-4 py-2 rounded-lg focus:outline-none focus:border-blue-500"
               >
-                <option value="surveyor">Surveyor</option>
                 <option value="user">User</option>
                 <option value="admin">Admin</option>
               </select>
@@ -239,12 +238,9 @@ export default function KelolaAkun() {
                       <td className="px-6 py-4 text-sm">
                         <span className={`px-3 py-1 rounded-full text-xs font-medium ${
                           user.role === 'admin' ? 'bg-red-100 text-red-700' :
-                          user.role === 'user' ? 'bg-blue-100 text-blue-700' :
-                          'bg-yellow-100 text-yellow-700'
+                          'bg-blue-100 text-blue-700'
                         }`}>
-                          {user.role === 'admin' ? 'Admin' : 
-                           user.role === 'user' ? 'User' : 
-                           'Surveyor'}
+                          {user.role === 'admin' ? 'Admin' : 'User'}
                         </span>
                       </td>
                       <td className="px-6 py-4 text-sm flex gap-2">
